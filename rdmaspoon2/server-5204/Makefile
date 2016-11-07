@@ -12,7 +12,7 @@ INC =
 DEBUG = 
 #OPTS = -Wno-literal-suffix
 OPTS = -Wno-literal-suffix -Wall
-LDFLAGS =  -lpthread -lrdmacm -libverbs
+LDFLAGS =  -lpthread -lrdmacm -libverbs -lprotobuf
 CFLAGS = -c $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall 
@@ -20,7 +20,7 @@ CPPFLAGS = -c -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing
 	
-OBJS = fde.o link.o msg.o net.o server.o resp.o
+OBJS = ckv_proto.pb.o fde.o link.o msg.o net.o server.o resp.o
 TARGET = server-5204
 UTIL_OBJS = ./util/log.o ./util/config.o ./util/bytes.o ./util/sorted_set.o ./util/app.o
 UTIL_LIB = ./util/libutil.a
@@ -81,6 +81,12 @@ server.o: server.cpp net.h
 	$(CPP) $(CPPFLAGS) $<
 
 resp.o: resp.cpp resp.h
+	$(CPP) $(CPPFLAGS) $<
+
+ckv_proto.pb.cc: ckv_proto.proto
+	protoc --cpp_out=. $< 
+
+ckv_proto.pb.o: ckv_proto.pb.cc
 	$(CPP) $(CPPFLAGS) $<
 
 #valgrind:

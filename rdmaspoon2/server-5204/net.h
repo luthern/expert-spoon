@@ -39,7 +39,17 @@ struct clientRequest{
 	int answernum;
 };
 
+struct send_message {
+    uint8_t operation;
+    unsigned char key[16];
+    unsigned char value[32];
+};
 
+struct response_message {
+    uint8_t status_code;
+    unsigned char key[16];
+    unsigned char value[32];
+};
 
 struct rdmaParams{
 
@@ -74,6 +84,10 @@ class NetworkServer {
 		rstatus_t proc_info(Link *link);
 		struct rdmaParams rdma;
 		char * rdmarespond(char *msg);
+		Link *clientlink;
+		Link *kvlink;
+		char isrdma;
+		
 	private:
 		Fdevents *fdes;
 		Link *client_conn;

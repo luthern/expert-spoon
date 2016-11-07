@@ -71,6 +71,15 @@ void Link::set_nw_func() {
 		recv_nw = req_recv;
 		send_nw = rsp_send;
 }
+void Link::set_rdma_nw_func() {
+		recv_nw = rdma_req_recv;
+		send_nw = rsp_send;
+}
+
+void Link::set_kv_nw_func() {
+		recv_nw = kv_req_recv;
+		send_nw = rsp_send;
+}
 
 // TODO: check less than 256
 static bool is_ip(const char *host){
