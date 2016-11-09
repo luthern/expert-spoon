@@ -25,6 +25,10 @@
 #include <rdma/rdma_cma.h>
 
 
+
+
+
+
 //Initializes rdma connection with KV store
 //Based on code from https://github.com/simonzhangsm/SoftiWarp/tree/master/rdma-tutorial-2007
 void * rdmaclient(void *args)
@@ -194,24 +198,22 @@ char * NetworkServer::rdmarespond(char *msg){
 	struct ibv_recv_wr	       *bad_recv_wr;
 	struct ibv_wc			wc;
 
-
+	struct send_message *recv_msg = (struct send_message *) msg;
+	
 	//Uses message contents to fill out a clientRequest struct
 	//This struct is the memory region that will be written into the KV store
 	//memory with RDMA
 	//The message looks like this mode:key:value:
 	//Like r:cow:hamburger: or w:pig:bacon:
-	this->rdma.request[0].requestType = msg[0];
-	int index = 2;
-	int offset;
-	ibv_poll_cq(this->rdma.cq, 5, &wc);
-
-	for(offset = 0; offset < 16 && msg[index+offset]!=':';offset++){
-		this->rdma.request[0].key[offset] = msg[index+offset];
+	
+	if(recv_msg->operation == 0){
+		this->rdma.request[0].requestType = 'r';
 	}
-	index = index + offset + 1;
-	for(offset = 0; offset < 32 && msg[index+offset]!=':';offset++){
-		this->rdma.request[0].value[offset] = msg[index+offset];
+	else{
+		this->rdma.request[0].requestType = 'w';
 	}
+	memcpy(this->rdma.request[0].key, recv_msg->key, 16);
+	memcpy(this->rdma.request[0].value, recv_msg->value, 32);
 
 	sge.addr   = (uintptr_t) this->rdma.request;
 	sge.length = sizeof (struct clientRequest);
@@ -253,23 +255,26 @@ char * NetworkServer::rdmarespond(char *msg){
 	while(this->rdma.request[0].state==1){
 	}
 
-	//Writes message back to client based on contents of clientRequest struct
-	char *returnbuffer = (char *) calloc(100, sizeof(char));
-	if(msg[0]=='w')
-	snprintf(returnbuffer, 100, "Wrote value %s to key %s\n", this->rdma.request[0].value, this->rdma.request[0].key);
-	if(msg[0]=='r')
-	snprintf(returnbuffer, 100, "Read value %s from key %s\n", this->rdma.request[0].value, this->rdma.request[0].key);
+	struct response_message *resp = (struct response_message *)calloc(1, sizeof(struct response_message));
+	resp->status_code = (int)rdma.request[0].requestType;
+	strcpy((char *)resp->key, (char *)rdma.request[0].key);
+	strcpy((char *)resp->value, (char *)rdma.request[0].value);
 
 	//Changes the request struct state to 0, indicating it is free to be used for requests
 	this->rdma.request[0].state=0;
 
 	//Polls completion queue because if it fills up that's bad
 	//The CQ is where work requests go after they were processed by queue pairs
-	ibv_poll_cq(this->rdma.cq, 5, &wc);
+	ibv_poll_cq(this->rdma.cq, 50, &wc);
 
-	//Returns the message to be sent back to the client
-	return returnbuffer;
 
+	return (char *)resp;
+	//Writes message back to client based on contents of clientRequest struct
+	/*char *returnbuffer = (char *) calloc(100, sizeof(char));
+	if(this->rdma.request[0].requestType == 'w')
+	snprintf(returnbuffer, 100, "Wrote value %s to key %s\n", this->rdma.request[0].value, this->rdma.request[0].key);
+	else{
+	snprintf(returnbuffer, 100, "Read value %s from key %s\n", this->rdma.request[0].value, this->rdma.request[0].key);}*/
 
 }
 
@@ -281,6 +286,7 @@ NetworkServer::NetworkServer(void) {
 	fdes = new Fdevents();
 
 	client_conn = Link::listen("127.0.0.1", 12345);
+	kvlink = (Link *)malloc(sizeof(Link));
 	if(client_conn == NULL){
 		fprintf(stderr, "error opening server socket! %s\n", strerror(errno));
 		exit(1);
@@ -310,12 +316,20 @@ int NetworkServer::main_loop(void) {
 
 	pthread_t rdmathread;
 	//Creates thread that initializes RDMA
-	pthread_create(&rdmathread, NULL, rdmaclient, &(this->rdma));
+	if(isrdma=='1'){
+		pthread_create(&rdmathread, NULL, rdmaclient, &(this->rdma));
+	}
+	else{
+		this->kvlink = Link::connect("127.0.0.1", 11211);
+		kvlink->set_kv_nw_func();
+		fdes->set(kvlink->fd(), FDEVENT_IN, 0, client_conn);
+	}
 
 	const Fdevents::events_t *events;
 
 	//set client connections to be accepted
 	fdes->set(client_conn->fd(), FDEVENT_IN, 0, client_conn);
+	
 
 	while (true) {
 		events = fdes->wait(50); // yue: so far timeout hardcoded
@@ -326,6 +340,13 @@ int NetworkServer::main_loop(void) {
 			const Fdevent *fde = events->at(i);
 			if (fde->data.ptr == client_conn) {
 				Link *conn = accept_conn();
+				if(isrdma=='1'){
+					conn->set_rdma_nw_func();
+				}
+				else{
+					conn->set_nw_func();
+					clientlink = conn;
+				}
 				if (conn) {
 					conn_count++;
 					fdes->set(conn->fd(), FDEVENT_IN, 1, conn);

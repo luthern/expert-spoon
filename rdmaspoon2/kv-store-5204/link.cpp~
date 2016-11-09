@@ -130,6 +130,7 @@ int Link::msg_write() {
 	}
 	while ((wanted = output->size()) > 0) {
 		int len = ::write(sfd, output->data(), wanted);
+		std::cout << output->data() << output->size()  << " " << strlen(output->data()) << "\n";
 		if (len == -1) {
 			if (errno == EINTR) {
 				continue;

@@ -18,7 +18,7 @@
 #include "link.h"
 #include "fde.h"
 
-
+void * rdmaclient(void *args);
 
 
 enum {
@@ -39,7 +39,17 @@ struct clientRequest{
 	int answernum;
 };
 
+struct send_message {
+    uint8_t operation;
+    unsigned char key[16];
+    unsigned char value[32];
+};
 
+struct response_message {
+    uint8_t status_code;
+    unsigned char key[16];
+    unsigned char value[32];
+};
 
 struct rdmaParams{
 
@@ -73,8 +83,11 @@ class NetworkServer {
 		Fdevents *get_fdes();
 		rstatus_t proc_info(Link *link);
 		struct rdmaParams rdma;
-		void * rdmaclient(void *args);
 		char * rdmarespond(char *msg);
+		Link *clientlink;
+		Link *kvlink;
+		char rdma;
+		
 	private:
 		Fdevents *fdes;
 		Link *client_conn;

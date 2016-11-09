@@ -21,7 +21,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <glog/logging.h>
-
+#include <iostream>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -211,7 +211,7 @@ void *inspectArray(void *array){
 	//When it has the KV store makes a response and RDMA sends it to the server
 	while(1){
 		if(ctx->request[0].state==1){
-			ibv_poll_cq(ctx->cq, 5, &wc);
+			ibv_poll_cq(ctx->cq, 50, &wc);
 			if(ctx->request[0].requestType=='r'){
 				printf("\nReading from key %s\n", ctx->request[0].key);
 				if (hashmap->find(ctx->request[0].key) != hashmap->end()) {
@@ -651,6 +651,9 @@ static bool update_event(Link *c, const int new_flags) {
 
 static void compose_reply(Link *c, protoSpec::Reply &msg, const std::string &t) {
 	std::string data = msg.SerializeAsString();
+
+	protoSpec::Request req;
+	t = req.GetTypeName();
 	//std::string type = this->write_buf.GetTypeName();
 	//std::string type = getOpType(this->write_buf);
 	size_t dataLen = data.length();
@@ -706,7 +709,6 @@ static void handle_request(Link *c) {
 	req.ParseFromString(payload);
 	protoSpec::Reply reply;
 	if (get.GetTypeName() == t) {  // yue: serve GET
-
 		//fprintf(stderr, "process GET...\n");
 		std::string key = req.mutable_get()->key();
 #ifdef USE_STL_MAP
@@ -715,12 +717,13 @@ static void handle_request(Link *c) {
 			reply.set_status(0);
 			reply.set_value(value);
 		} else {
-			reply.set_status(-1);
+			//reply.set_value(key);
+			reply.mutable_value()->append("Key not found");
+			reply.set_status(0);
 		}
 #endif
 
 	} else if (put.GetTypeName() == t) {  // yue: serve PUT
-
 		//fprintf(stderr, "%d: process PUT: key=%s, val=%s\n", 
 		//		settings.port, req.mutable_put()->key().c_str(), req.mutable_put()->value().c_str());
 		//fprintf(stderr, "put: key=%s, val=%s\n", 
@@ -730,7 +733,11 @@ static void handle_request(Link *c) {
 		auto item = hashmap->find(req.mutable_put()->key());
 		if (item != hashmap->end()) { // yue: if kv pair exists
 			item->second = req.mutable_put()->value();
+			reply.set_value("Found the key");
+			reply.mutable_value()->append(item->first);
 		} else { // yue: if kv pair does not exist
+			reply.set_value("Added new key");
+			//reply.mutable_value()->append(item->first);
 			hashmap->insert(std::make_pair(req.mutable_put()->key(), req.mutable_put()->value()));
 		}
 		reply.set_status(0);

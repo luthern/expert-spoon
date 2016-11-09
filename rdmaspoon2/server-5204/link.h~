@@ -63,6 +63,8 @@ class Link{
 		void noblock(bool enable=true);
 		void keepalive(bool enable=true);
 		void set_nw_func(); // yue
+		void set_rdma_nw_func();
+		void set_rdma_kv_func();
 
 		int fd() const{
 			return sock;
