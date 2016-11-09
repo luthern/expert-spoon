@@ -20,7 +20,7 @@ CPPFLAGS = -c -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing
 
-OBJS = client.o
+OBJS = client.o utils.o
 TARGET = client-5204
 
 dbg: OPTS += -O0
@@ -42,6 +42,9 @@ stripall: $(TARGET)
 
 client-5204: $(OBJS)
 	$(CPP) $(LDFLAGS) $(OBJS) -o $@
+
+utils.o: utils.cpp utils.h
+	$(CPP) $(CPPFLAGS) -o $@ $<
 
 client.o: main.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
