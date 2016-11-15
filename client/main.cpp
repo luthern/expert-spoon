@@ -9,6 +9,8 @@
 #include "messages.h"
 #include "utils.h"
 
+bool g_verbose = false;
+
 // The struct we are using to store the results
 // What will be written from the child processes to the parent
 struct benchmark_results {
@@ -18,7 +20,7 @@ struct benchmark_results {
 };
 
 void usage(char *name){
-    printf("%s -i <ip_addr> -p <port> -c <num_of_connections> -m <msg_num> -n <req_num> -d <milliseconds> -h\n",name);
+    printf("%s -i <ip_addr> -p <port> -c <num_of_connections> -m <msg_num> -n <req_num> -d <milliseconds> -v -h\n",name);
     printf("Example: %s -i 0.0.0.0 -p 12345 -c 12 -m 100 -d 0 -n 100000\n", name);
 }
 
@@ -30,6 +32,7 @@ void help(char * name){
     printf("-m(default=1): The number of messages that are sent per request\n");
     printf("-d(default=0): Time to delay in milliseconds after each request\n");
     printf("-n: The number of requests you want to send per socket in total\n");
+    printf("-v: Run the program in verbose mode\n");
     printf("-h: Displays this message\n");
 
 }
@@ -51,9 +54,11 @@ uint32_t send_requests(int s, uint16_t msgs_per_request,
         }
         send(s, msgs, sizeof(struct send_message) * msgs_per_request, 0);
         recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), 0);
-        // for(int i = 0; i < msgs_per_request; i++){
-        //     print_response_message(&resp_msgs[i]);
-        // }
+        if(g_verbose){
+            for(int i = 0; i < msgs_per_request; i++){
+                print_response_message(&resp_msgs[i]);
+            }
+        }
         msgs_sent += msgs_per_request;
         if(delay)
             usleep(delay * 1000);
@@ -141,7 +146,7 @@ int main(int argc, char *argv[]) {
     uint32_t num_of_msgs_per_connection = 1024;
     uint8_t req_args = 0b11;
     uint32_t delay = 0;
-    while ((option = getopt(argc, argv,"hi:p:c:m:d:n:")) != -1) {
+    while ((option = getopt(argc, argv,"vhi:p:c:m:d:n:")) != -1) {
         switch (option) {
              case 'i' :
                  ip_addr = inet_addr(optarg);
@@ -162,6 +167,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'd':
                 delay = atoi(optarg);
+                break;
+            case 'v':
+                g_verbose = true;
                 break;
             case 'h':
                 help(argv[0]);
