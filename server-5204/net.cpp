@@ -1,4 +1,5 @@
 
+
 #include "server.h"
 #include "net.h"
 #include "resp.h"
@@ -95,4 +96,3 @@ rstatus_t NetworkServer::send(const Fdevent *fde) {
 Fdevents *NetworkServer::get_fdes() {
 	return fdes;
 }
-

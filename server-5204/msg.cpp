@@ -38,6 +38,7 @@ rstatus_t req_recv(NetworkServer *proxy, Link *conn) {
         memcpy(resp_msgs[i].value, msgs[i].key, 16);
         memcpy(resp_msgs[i].value + 16, msgs[i].key, 16);
     }
+    delete msg;
 	// populate the response buffer queue
 	Buffer *rsp = new Buffer((char *)resp_msgs, sizeof(struct response_message) * num_msgs);
 
@@ -54,7 +55,7 @@ rstatus_t rsp_send(NetworkServer *proxy, Link *conn) {
 	// send response back
 	Buffer *smsg;
 	if (!conn->omsg_q.empty()) {
-	smsg = conn->omsg_q.front(); conn->omsg_q.pop_front();
+	    smsg = conn->omsg_q.front(); conn->omsg_q.pop_front();
 	}
 	else{
 		Fdevents *fdes = proxy->get_fdes();
@@ -65,11 +66,11 @@ rstatus_t rsp_send(NetworkServer *proxy, Link *conn) {
 		return CO_OK;  // yue: nothing to send
 	}
 	int len = conn->msg_write(smsg);
+    delete smsg;
 	if (len <= 0) {
 		fprintf(stderr, "fd: %d, write: %d, delete link", conn->fd(), len);
 		conn->mark_error();
 		return CO_ERR;
 	}
-
 	return CO_OK;
 }
