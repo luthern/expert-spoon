@@ -12,7 +12,7 @@ INC =
 DEBUG =
 #OPTS = -Wno-literal-suffix
 OPTS = -Wno-literal-suffix -Wall
-LDFALGS =
+LDFLAGS = -lrt
 CFLAGS = -c $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall
@@ -41,13 +41,13 @@ stripall: $(TARGET)
 	mv -t bin/ $(TARGET)
 
 client-5204: $(OBJS)
-	$(CPP) $(LDFLAGS) $(OBJS) -o $@
+	$(CPP) $(OBJS) $(LDFLAGS) -o $@
 
 utils.o: utils.cpp utils.h
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 client.o: main.cpp
-	$(CPP) $(CPPFLAGS) -o $@ $<
+	$(CPP) $(CPPFLAGS) -o $@  $<
 
 #valgrind:
 #	G_DEBUG=gc-friendly G_SLICE=always-malloc valgrind --track-origins=yes --leak-resolution=high --leak-check=full --show-reachable=yes  ./unit_test
