@@ -9,17 +9,24 @@ RANLIB = ranlib
 TOUCH = touch
 INC =
 
+
+INCLUDE = $(RTE_SDK)x86_64-native-linuxapp-gcc/include/
+LIB = $(RTE_SDK)x86_64-native-linuxapp-gcc/lib/
 DEBUG = 
 #OPTS = -Wno-literal-suffix
-OPTS = -Wno-literal-suffix -Wall
-LDFALGS = 
+OPTS = -Wno-literal-suffix -Wall 
+LDFLAGS = -lpthread -lrt -L$(LIB) -Wl,-export-dynamic -Wl,-lrte_kni -Wl,-lrte_pmd_e1000 -Wl,-lrte_pmd_ixgbe \
+-Wl,-lrte_mbuf -Wl,-lrte_cmdline -Wl,-lrte_timer -Wl,-lrte_hash -Wl,-lrte_lpm -Wl,--start-group \
+-Wl,-lethdev  -Wl,-lrte_mempool \
+-Wl,-lrte_ring -Wl,-lrte_eal -Wl,-ldl -Wl,-ldpdk -Wl,--end-group 
+
 CFLAGS = -c $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall 
-CPPFLAGS = -c -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
+CPPFLAGS = -c -I$(INCLUDE) -include $(INCLUDE)rte_config.h -L$(LIB) -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
-	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing
-	
+	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing 
+
 OBJS = fde.o link.o msg.o net.o server.o resp.o
 TARGET = server-5204
 UTIL_OBJS = ./util/log.o ./util/config.o ./util/bytes.o ./util/sorted_set.o ./util/app.o
@@ -63,7 +70,7 @@ $(UTIL_LIB) : $(UTIL_OBJS)
 	${CPP} ${CPPFLAGS} -c -o $@ $<
 
 server-5204: $(OBJS) $(UTIL_LIB)
-	$(CPP) $(LDFLAGS) $(OBJS) -o $@ $(UTIL_LIB) 
+	$(CPP) $(OBJS) -o $@ $(UTIL_LIB) $(LDFLAGS)
 
 fde.o: fde.cpp fde.h fde_epoll.cpp fde_select.cpp
 	$(CPP) $(CPPFLAGS) $<
@@ -99,3 +106,5 @@ resp.o: resp.cpp resp.h
 
 clean:
 	rm -fr *.o *.a $(TARGET) ./util/*.o ./util/*.a
+
+
