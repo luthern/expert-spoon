@@ -59,7 +59,7 @@ void copy_timespec(struct timespec *dest, struct timespec *src){
 
 // Does all the tcp socket initialization that must be done
 // and returns the fd
-int init_connection(uint32_t ip_addr, uint16_t port){
+int init_tcp_connection(uint32_t ip_addr, uint16_t port){
     int socket_desc;
     struct sockaddr_in server;
 
@@ -78,6 +78,22 @@ int init_connection(uint32_t ip_addr, uint16_t port){
     //Connect to remote server
     if (connect(socket_desc , (struct sockaddr *)&server , sizeof(server)) < 0){
         printf("Failed to connect to server\n");
+        exit(-1);
+    }
+    return socket_desc;
+}
+
+
+// Does all the tcp socket initialization that must be done
+// and returns the fd
+int init_udp_connection(uint32_t ip_addr, uint16_t port){
+    int socket_desc;
+
+    //Create UDP socket
+    socket_desc = socket(AF_INET , SOCK_DGRAM , 0);
+    if (socket_desc == -1)
+    {
+        printf("Failed to create socket\n");
         exit(-1);
     }
     return socket_desc;

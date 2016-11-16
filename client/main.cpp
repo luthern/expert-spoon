@@ -41,7 +41,7 @@ void help(char * name){
 // We generate random keys using rand() and then send send_message structs to the server
 // We then recv the response_messages back
 // which currently will have values that are just key repeated
-uint32_t send_requests(int s, uint16_t msgs_per_request,
+uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
                         uint32_t num_of_msgs_per_connection, uint32_t delay){
     uint32_t msgs_sent = 0;
     while(msgs_sent < num_of_msgs_per_connection)
@@ -65,6 +65,56 @@ uint32_t send_requests(int s, uint16_t msgs_per_request,
     }
     return msgs_sent;
 }
+
+// Sends UDP request to the server
+// The actual sending messages part of the benchmark
+// We generate random keys using rand() and then send send_message structs to the server
+// We then recv the response_messages back
+// which currently will have values that are just key repeated
+uint32_t send_udp_requests(int s,
+			uint16_t msgs_per_request, uint32_t num_of_msgs_per_connection,
+			uint32_t delay,	struct sockaddr_in* server_ptr){
+
+    uint32_t msgs_sent = 0;
+    uint32_t server_len = sizeof (*server_ptr);
+
+    while(msgs_sent < num_of_msgs_per_connection)
+    {
+        struct send_message msgs[msgs_per_request];
+        struct response_message resp_msgs[msgs_per_request];
+        for(int i = 0; i < msgs_per_request; i++){
+            for(int j = 0; j < 16; j++)
+                msgs[i].key[j] = rand() % 256;
+        }
+
+        sendto(s,
+        		msgs,
+        		sizeof(struct send_message) * msgs_per_request,
+				0,
+				(struct sockaddr *) server_ptr,
+				server_len);
+
+        //TODO: currently not distinguishing the server from which the response is received
+        recvfrom(s,
+        		resp_msgs,
+				msgs_per_request * sizeof(struct response_message),
+				0,
+				(struct sockaddr *)server_ptr,
+				&server_len);
+
+        if(g_verbose){
+            for(int i = 0; i < msgs_per_request; i++){
+                print_response_message(&resp_msgs[i]);
+            }
+        }
+        msgs_sent += msgs_per_request;
+        if(delay)
+            usleep(delay * 1000);
+    }
+    return msgs_sent;
+}
+
+
 
 // The actual benchmark
 // Basically we fork() for every connection, so each socket will have its own process
@@ -93,10 +143,17 @@ void run_benchmark(uint32_t ip_addr, uint16_t port, uint16_t num_of_connections,
         }
     }
     if(is_child){
-        int s = init_connection(ip_addr, port);
+        int s = init_udp_connection(ip_addr, port);
         struct benchmark_results br;
         clock_gettime(CLOCK_MONOTONIC, &br.tstart);
-        br.messages_sent = send_requests(s,msgs_per_request, num_of_msgs_per_connection ,delay);
+
+        //br.messages_sent = send_tcp_requests(s,msgs_per_request, num_of_msgs_per_connection ,delay);
+        struct sockaddr_in server;
+        server.sin_addr.s_addr = ip_addr;
+        server.sin_family = AF_INET;
+        server.sin_port = port;
+
+        br.messages_sent = send_udp_requests(s,msgs_per_request, num_of_msgs_per_connection ,delay, &server);
         clock_gettime(CLOCK_MONOTONIC, &br.tend);
         write(write_fd, &br, sizeof(struct benchmark_results));
         close(s);

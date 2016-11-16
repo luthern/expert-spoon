@@ -16,5 +16,6 @@ struct timespec* max_timespec(struct timespec *t1, struct timespec *t2);
 void copy_timespec(struct timespec *dest, struct timespec *src);
 
 // Function that simplifies the socket connection process
-int init_connection(uint32_t ip_addr, uint16_t port);
+int init_tcp_connection(uint32_t ip_addr, uint16_t port);
+int init_udp_connection(uint32_t ip_addr, uint16_t port);
 #endif /* UTILS_H */
