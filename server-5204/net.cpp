@@ -1,5 +1,3 @@
-
-
 #include "server.h"
 #include "net.h"
 #include "resp.h"
@@ -26,7 +24,6 @@ Link *NetworkServer::accept_conn() {
 	conn->noblock();
 	conn->create_time = millitime();
 	conn->active_time = conn->create_time;
-
 	conn->set_nw_func();
 
 	return conn;

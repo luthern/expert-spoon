@@ -183,7 +183,7 @@ class Decoder{
 private:
 	const char *p;
 	int size;
-	Decoder(){}
+	Decoder();
 public:
 	Decoder(const char *p, int size){
 		this->p = p;

@@ -6,6 +6,8 @@ found in the LICENSE file.
 #ifndef UTIL_FDE_EPOLL_H
 #define UTIL_FDE_EPOLL_H
 
+#include "fde.h"
+
 Fdevents::Fdevents(){
 	ep_fd = epoll_create(1024);
 }

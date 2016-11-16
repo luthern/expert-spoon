@@ -27,9 +27,11 @@ Link::Link(){
 	remote_port = -1;
 	auth = false;
 	ignore_key_range = false;
-
 	input = new Buffer(INIT_BUFFER_SIZE);
 	output = new Buffer(INIT_BUFFER_SIZE);
+	active_time = 0;
+	create_time = 0;
+	set_nw_func();
 }
 
 Link::~Link(){
