@@ -21,7 +21,6 @@ class NetworkServer {
 	private:
 		Fdevents *fdes;
 		Link *client_conn;
-		Link *server_conn;
 		int conn_count;
 };
 

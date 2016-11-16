@@ -368,7 +368,7 @@ const std::vector<Bytes>* Link::parse(){
 		return &this->recv_data;
 	}
 
-	// TODO: 记住上回的解析状态
+	// TODO: Remember the last parse state
 	int parsed = 0;
 	int size = input->size();
 	char *head = input->data();
