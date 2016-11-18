@@ -1,3 +1,5 @@
+.PHONY: all clean kv_test
+
 CC=gcc
 CPP=g++
 
@@ -15,7 +17,7 @@ CPPFLAGS = -c -std=c++11 $(COPTS) ${OPTS} ${DEBUG} -D_LARGEFILE_SOURCE \
 TARGET = conkv
 OBJS = conkv.o link.o str.o ckv_proto.pb.o
 
-LIBS = -lpthread -levent -lglog -lprotobuf
+LIBS = -lpthread -levent -lglog -lprotobuf -I/usr/local/lib/ -lcityhash -L/usr/local/lib/
 
 dbg: OPTS += -O0
 dbg: DEBUG += -g -ggdb
@@ -24,14 +26,24 @@ dbg: all
 opti: OPTS += -O2
 opti: all stripall
 
+KV_TEST_OBJS = kvstore_test.o cuckoo_kvstore.o
 
 all: $(OBJS) $(TARGET)
 
 stripall: $(TARGET)
 	strip $(TARGET)
 
-conkv: $(OBJS) 
-	$(CPP) $(OBJS) -o $@ $(LIBS) 
+conkv: $(OBJS)
+	$(CPP) $(OBJS) -o $@ $(LIBS)
+
+kv_test: $(KV_TEST_OBJS)
+	$(CPP) $(KV_TEST_OBJS) -o $@ $(LIBS)
+
+kvstore_test.o: kvstore_test.cpp
+	$(CPP) $(CPPFLAGS) $<
+
+cuckoo_kvstore.o: cuckoo_kvstore.cpp
+	$(CPP) $(CPPFLAGS) $<
 
 link.o: link.cpp link.h
 	$(CPP) $(CPPFLAGS) $<
@@ -45,8 +57,8 @@ ckv_proto.pb.cc: ckv_proto.proto
 ckv_proto.pb.o: ckv_proto.pb.cc
 	$(CPP) $(CPPFLAGS) $<
 
-conkv.o: conkv.cpp link.h ckv_proto.pb.cc conkv.h 
+conkv.o: conkv.cpp link.h ckv_proto.pb.cc conkv.h
 	$(CPP) $(CPPFLAGS) $<
 
 clean:
-	rm -fr *.o *.a $(TARGET) 
+	rm -fr *.o *.a $(TARGET)
