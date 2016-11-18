@@ -17,7 +17,7 @@ CPPFLAGS = -c -std=c++11 $(COPTS) ${OPTS} ${DEBUG} -D_LARGEFILE_SOURCE \
 TARGET = conkv
 OBJS = conkv.o link.o str.o ckv_proto.pb.o
 
-LIBS = -lpthread -levent -lglog -lprotobuf -I/usr/local/lib/ -lcityhash -L/usr/local/lib/
+LIBS = -lpthread -lprotobuf -I/usr/local/lib/ -lcityhash -L/usr/local/lib/
 
 dbg: OPTS += -O0
 dbg: DEBUG += -g -ggdb
