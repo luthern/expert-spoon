@@ -1,0 +1,5 @@
+#! /bin/bash
+
+g++ redooutput.c -o redooutput -std=c++11
+g++ checkoutput.c -o checkoutput -std=c++11
+g++ createTest.c -o newtest -std=c++11
