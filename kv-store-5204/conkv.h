@@ -6,10 +6,8 @@
 #define HASHPOWER_DEFAULT 16
 
 typedef unsigned long int ub4;
-typedef unsigned char     ub1;
+typedef unsigned char ub1;
 
-#define hashsize(n) ((ub4)1<<(n))
-#define hashmask(n) (hashsize(n)-1)
 
 static const uint32_t MAGIC = 0x06121983;
 
@@ -39,8 +37,8 @@ struct _thread_t {
 	struct event notify_event;
 	int notify_receive_fd;
 	int notify_send_fd;
-	std::deque<struct _cq_item_t *> *new_conn_q;
+	std::deque < struct _cq_item_t * > *new_conn_q;
 	pthread_mutex_t cq_lock;
-}; 
+};
 
 typedef struct _thread_t LIBEVENT_THREAD;

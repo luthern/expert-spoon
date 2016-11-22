@@ -319,6 +319,7 @@ static bool update_event(Link *c, const int new_flags)
 
 static void compose_reply(Link *c, protoSpec::Reply &msg)
 {
+	c->output->append((uint32_t)msg.ByteSize());
 	c->output->append(msg.SerializeAsString().data(), msg.ByteSize());
 }
 

@@ -2,38 +2,58 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <iostream>
+#include <stdio.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
 
 #include "cuckoo_kvstore.h"
+#include "ckv_proto.pb.h"
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+
+// Does all the tcp socket initialization that must be done
+// and returns the fd
+int init_tcp_connection(uint32_t ip_addr, uint16_t port)
+{
+	int socket_desc;
+	struct sockaddr_in server;
+
+	//Create socket
+	socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+	if (socket_desc == -1) {
+		printf("Failed to create socket\n");
+		exit(-1);
+	}
+
+	server.sin_addr.s_addr = ip_addr;
+	server.sin_family = AF_INET;
+	server.sin_port = port;
+
+	//Connect to remote server
+	if (connect(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
+		printf("Failed to connect to server\n");
+		exit(-1);
+	}
+	return socket_desc;
+}
 
 int main(int argc, char const *argv[])
 {
+	protoSpec::Request req;
+	protoSpec::Reply reply;
 
-	KVStore * kvstore = new CuckooKVStore();
-
-	printf("sizeof(KVStore::Key): %lu\n", sizeof(KVStore::Key));
-	printf("sizeof(KVStore::Key): %lu\n", sizeof(KVStore::Value));
-	printf("Total elements in the kvstore: %lu\n", kvstore->size());
-	// Insert some keys and values
-	// Granted values are not 32 bytes,
-	// but we are just printing the string out so they will be padded with junk
-	printf("Inserting five items..\n");
-	kvstore->insert(*(KVStore::Key*)"TES1TES1TES1TES1", *(KVStore::Value*)"VALUE1");
-	kvstore->insert(*(KVStore::Key*)"TES2TES2TES2TES2", *(KVStore::Value*)"VALUE2");
-	kvstore->insert(*(KVStore::Key*)"TES3TES3TES3TES3", *(KVStore::Value*)"VALUE3");
-	kvstore->insert(*(KVStore::Key*)"TES4TES4TES4TES4", *(KVStore::Value*)"VALUE4");
-	kvstore->insert(*(KVStore::Key*)"TES5TES5TES5TES5", *(KVStore::Value*)"VALUE5");
-	printf("Total elements in the kvstore: %lu\n", kvstore->size());
-	printf("Getting value for key 'TES3TES3TES3TES3'\n");
-	KVStore::Value v;
-	bool err = kvstore->find(*(KVStore::Key*)"TES3TES3TES3TES3", &v);
-	printf("find() returned: %d\n", err);
-	printf("Value contents: %s\n", (char*)&v);
-	printf("Deleting pair for key 'TES3TES3TES3TES3'\n");
-	err = kvstore->erase(*(KVStore::Key*)"TES3TES3TES3TES3");
-	printf("Deletion returned: %d\n", err);
-	printf("Checking whether the store contains 'TES3TES3TES3TES3'\n");
-	err = kvstore->contains(*(KVStore::Key*)"TES3TES3TES3TES3");
-	printf("contains() returned: %d\n", err);
-	printf("Total elements in the kvstore: %lu\n", kvstore->size());
+	protoSpec::GetMessage *get = req.mutable_get();;
+	req.set_op(protoSpec::Request_Operation_GET);
+	get->set_key("TES1TES1TES1TES1");
+	int s = init_tcp_connection(inet_addr("127.0.0.1"), htons(atoi("11211")));
+	google::protobuf::io::FileInputStream *s_zero_copy = new google::protobuf::io::FileInputStream(s);
+	printf("STARTING\n");
+	req.SerializeToFileDescriptor(s);
+	uint32_t len;
+	int err = recv(s, &len, 4, 0);
+	printf("err = %d\n", err);
+	printf("len= %d\n", len);
+	reply.ParseFromBoundedZeroCopyStream(s_zero_copy, len);
+	printf("status = %d\n", reply.status());
 
 }
