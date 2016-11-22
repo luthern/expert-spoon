@@ -15,9 +15,9 @@ CPPFLAGS = -c -std=c++11 $(COPTS) ${OPTS} ${DEBUG} -D_LARGEFILE_SOURCE \
 	  -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -fpermissive
 
 TARGET = conkv
-OBJS = conkv.o link.o str.o ckv_proto.pb.o
+OBJS = conkv.o link.o str.o ckv_proto.pb.o cuckoo_kvstore.o
 
-LIBS = -lpthread -lprotobuf -I/usr/local/lib/ -lcityhash -L/usr/local/lib/
+LIBS = -lpthread -levent -lglog -lprotobuf -I/usr/local/lib/ -lcityhash -L/usr/local/lib/
 
 dbg: OPTS += -O0
 dbg: DEBUG += -g -ggdb
@@ -26,7 +26,7 @@ dbg: all
 opti: OPTS += -O2
 opti: all stripall
 
-KV_TEST_OBJS = kvstore_test.o cuckoo_kvstore.o
+KV_TEST_OBJS = kvstore_test.o cuckoo_kvstore.o ckv_proto.pb.o
 
 all: $(OBJS) $(TARGET)
 
