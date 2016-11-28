@@ -9,23 +9,16 @@ RANLIB = ranlib
 TOUCH = touch
 INC =
 
-
-INCLUDE = $(RTE_SDK)x86_64-native-linuxapp-gcc/include/
-LIB = $(RTE_SDK)x86_64-native-linuxapp-gcc/lib/
-DEBUG = 
+DEBUG =
 #OPTS = -Wno-literal-suffix
-OPTS = -Wno-literal-suffix -Wall 
-LDFLAGS = -lpthread -lrt -L$(LIB) -Wl,-export-dynamic -Wl,-lrte_kni -Wl,-lrte_pmd_e1000 -Wl,-lrte_pmd_ixgbe \
--Wl,-lrte_mbuf -Wl,-lrte_cmdline -Wl,-lrte_timer -Wl,-lrte_hash -Wl,-lrte_lpm -Wl,--start-group \
--Wl,-lethdev  -Wl,-lrte_mempool \
--Wl,-lrte_ring -Wl,-lrte_eal -Wl,-ldl -Wl,-ldpdk -Wl,--end-group 
-
+OPTS = -Wno-literal-suffix -Wall
+LDFALGS =
 CFLAGS = -c $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
-	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall 
-CPPFLAGS = -c -I$(INCLUDE) -include $(INCLUDE)rte_config.h -L$(LIB) -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
+	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall
+CPPFLAGS = -c -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
-	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing 
+	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing
 
 OBJS = fde.o link.o msg.o net.o server.o resp.o
 TARGET = server-5204
@@ -39,20 +32,20 @@ dbg: DEBUG += -g -ggdb
 dbg: all
 
 opti: OPTS += -O2
-opti: LDFLAGS += 
+opti: LDFLAGS +=
 #opti: CPPFLAGS += -Wall
 opti: all stripall
 
-all: $(OBJS) $(UTIL_LIB) $(TARGET) 
+all: $(OBJS) $(UTIL_LIB) $(TARGET)
 
 stripall: $(TARGET)
 	strip $(TARGET)
-	mv -t bin/ $(TARGET) 
+	mv -t bin/ $(TARGET)
 
 $(UTIL_LIB) : $(UTIL_OBJS)
-	$(RM) $(UTIL_LIB)        
-	$(AR) cq $(UTIL_LIB) $(UTIL_OBJS)      
-	#$(RANLIB) $(UTIL_LIB) 
+	$(RM) $(UTIL_LIB)
+	$(AR) cq $(UTIL_LIB) $(UTIL_OBJS)
+	#$(RANLIB) $(UTIL_LIB)
 
 ./util/app.o: ./util/app.cpp ./util/app.h
 	${CPP} ${CPPFLAGS} -c -o $@ $<
@@ -70,7 +63,7 @@ $(UTIL_LIB) : $(UTIL_OBJS)
 	${CPP} ${CPPFLAGS} -c -o $@ $<
 
 server-5204: $(OBJS) $(UTIL_LIB)
-	$(CPP) $(OBJS) -o $@ $(UTIL_LIB) $(LDFLAGS)
+	$(CPP) $(LDFLAGS) $(OBJS) -o $@ $(UTIL_LIB)
 
 fde.o: fde.cpp fde.h fde_epoll.cpp fde_select.cpp
 	$(CPP) $(CPPFLAGS) $<
@@ -79,10 +72,10 @@ link.o: link.cpp link.h msg.h
 	$(CPP) $(CPPFLAGS) $<
 
 msg.o: msg.cpp link.h server.h
-	$(CPP) $(CPPFLAGS) $< 
+	$(CPP) $(CPPFLAGS) $<
 
 net.o: net.cpp net.h server.h
-	$(CPP) $(CPPFLAGS) $< 
+	$(CPP) $(CPPFLAGS) $<
 
 server.o: server.cpp net.h
 	$(CPP) $(CPPFLAGS) $<
@@ -102,9 +95,7 @@ resp.o: resp.cpp resp.h
 #	cscope -Rbkq
 
 #clean:
-#	rm -fr *.o *.a 
+#	rm -fr *.o *.a
 
 clean:
 	rm -fr *.o *.a $(TARGET) ./util/*.o ./util/*.a
-
-
