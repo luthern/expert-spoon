@@ -4,7 +4,7 @@
 #include <time.h>
 #include <stdint.h>
 
-#include "messages.h"
+#include "../messages.h"
 
 // Helper functions for printing message structures
 void print_response_message(struct response_message * resp);

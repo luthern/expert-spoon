@@ -12,7 +12,7 @@ INC =
 DEBUG =
 #OPTS = -Wno-literal-suffix
 OPTS = -Wno-literal-suffix -Wall
-LDFALGS =
+LDFLAGS = -pthread -lcityhash
 CFLAGS = -c $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall
@@ -20,7 +20,7 @@ CPPFLAGS = -c -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing
 
-OBJS = fde.o link.o msg.o net.o server.o resp.o
+OBJS = fde.o link.o msg.o net.o server.o resp.o cuckoo_kvstore.o
 TARGET = server-5204
 UTIL_OBJS = ./util/log.o ./util/config.o ./util/bytes.o ./util/sorted_set.o ./util/app.o
 UTIL_LIB = ./util/libutil.a
@@ -66,6 +66,9 @@ server-5204: $(OBJS) $(UTIL_LIB)
 	$(CPP) $(LDFLAGS) $(OBJS) -o $@ $(UTIL_LIB)
 
 fde.o: fde.cpp fde.h fde_epoll.cpp fde_select.cpp
+	$(CPP) $(CPPFLAGS) $<
+
+cuckoo_kvstore.o: cuckoo_kvstore.cpp
 	$(CPP) $(CPPFLAGS) $<
 
 link.o: link.cpp link.h msg.h
