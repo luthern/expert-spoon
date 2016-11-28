@@ -1,6 +1,11 @@
 #ifndef KVSTORE_H
 #define KVSTORE_H
 
+
+
+#define KEY_CAST(A) *(KVStore::Key*)A
+#define VALUE_CAST(A) *(KVStore::Value*)A
+
 class KVStore {
 private:
 public:
