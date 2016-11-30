@@ -126,6 +126,12 @@ void help(char * name){
 uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
                         uint32_t num_of_msgs_per_connection, uint32_t delay, std::string filename){
     uint32_t msgs_sent = 0;
+    std::ifstream ofs;
+    ofs.open(filename);
+    std::string line;
+    getline(ofs, line);
+    int length = stoi(line);
+    int linecount = 0;
     while(msgs_sent < num_of_msgs_per_connection)
     {
         struct send_message msgs[msgs_per_request];
@@ -154,8 +160,7 @@ uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
 			std::cout << msgs[i].value[g];
 		}
 		std::cout << "\n";*/
-
-
+	}
         send(s, msgs, sizeof(struct send_message) * msgs_per_request, 0);
         recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), 0);
         if(g_verbose){
