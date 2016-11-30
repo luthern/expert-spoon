@@ -48,8 +48,12 @@ int init_connection(uint32_t ip_addr, uint16_t port){
 
 //Parses a line from a file to create a send_message struct
 struct send_message parseLine(std::string line){
+
 	struct send_message request;
 	char op = line[0];
+
+	//Sets the integer operation field of the send message struct
+	//depending on the first character of the line in the file
 	if(op=='r')
 	{
 		request.operation = 0;
@@ -58,15 +62,20 @@ struct send_message parseLine(std::string line){
 	{
 		request.operation = 1;
 	}
+
 	int index = 2;
 	int keyindex = 0;
 	int valueindex = 0;
+
+	//Fills in the send message key char array with the chars from the file
+	//The : acts as a seperator between the operator, key, and value
 	while(line[index]!=':' and keyindex<16)
 	{
 		request.key[keyindex] = line[index];
 		index++;
 		keyindex++;
 	}
+	//Fills all remaining spaces in the array with '\0'
 	while(keyindex<16)
 	{
 		request.key[keyindex] = '\0';
@@ -74,12 +83,14 @@ struct send_message parseLine(std::string line){
 	}
 
 	index++;
+	//Fills in the send message value char array with the chars from the file
 	while(line[index]!=':' and valueindex<32)
 	{
 		request.value[valueindex] = line[index];
 		index++;
 		valueindex++;
 	}
+	//Fills all remaining spaces in the array with '\0'
 	while(valueindex<32)
 	{
 		request.value[valueindex] = '\0';
@@ -119,10 +130,32 @@ uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
     {
         struct send_message msgs[msgs_per_request];
         struct response_message resp_msgs[msgs_per_request];
-        for(int i = 0; i < msgs_per_request; i++){
-            for(int j = 0; j < 16; j++)
-                msgs[i].key[j] = rand() % 256;
-        }
+
+
+	//Loop that parses send messages from a file
+	for(int i = 0; i < msgs_per_request; i++){
+		if(linecount>=length)
+		{
+			ofs.close();
+			ofs.open(filename);
+			getline(ofs, line);
+			linecount = 0;
+		}
+		getline(ofs, line);
+		msgs[i] = parseLine(line);
+		linecount++;
+
+		//Debug printing statements to show that msg[i] was set properly
+		/*for(int q = 0; q<16; q++){
+			std::cout << msgs[i].key[q];
+		}
+		std::cout << ":";
+		for(int g = 0; g<32; g++){
+			std::cout << msgs[i].value[g];
+		}
+		std::cout << "\n";*/
+
+
         send(s, msgs, sizeof(struct send_message) * msgs_per_request, 0);
         recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), 0);
         if(g_verbose){
@@ -158,6 +191,9 @@ uint32_t send_udp_requests(int s,
     {
         struct send_message msgs[msgs_per_request];
         struct response_message resp_msgs[msgs_per_request];
+
+
+	//Loop that parses send messages from a file
 	for(int i = 0; i < msgs_per_request; i++){
 		if(linecount>=length)
 		{
@@ -169,10 +205,16 @@ uint32_t send_udp_requests(int s,
 		getline(ofs, line);
 		msgs[i] = parseLine(line);
 		linecount++;
-		for(int q = 0; q<16; q++){
-			//std::cout << msgs[i].key[q];
+
+		//Debug printing statements to show that msg[i] was set properly
+		/*for(int q = 0; q<16; q++){
+			std::cout << msgs[i].key[q];
 		}
-		//std::cout << "\n";
+		std::cout << ":";
+		for(int g = 0; g<32; g++){
+			std::cout << msgs[i].value[g];
+		}
+		std::cout << "\n";*/
 	}
 
         sendto(s,
@@ -235,6 +277,8 @@ void run_benchmark(uint32_t ip_addr, uint16_t port, uint16_t num_of_connections,
         }
     }
     if(is_child){
+
+	//Comment out one of these lines depending on if you want UDP or TCP
         //int s = init_udp_connection(ip_addr, port);
 	int s = init_connection(ip_addr, port);
         struct benchmark_results br;

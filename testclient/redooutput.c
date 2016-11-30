@@ -37,7 +37,8 @@ int main(int argc, char* argv[])
 	//Once the entire system call has been read from the file it is written to the new file as a single line
 	while(std::getline(ifs, line))
 	{
-		if(line.find("sendto") != std::string::npos or line.find("recvfrom") != std::string::npos)
+		if(line.find("sendto") != std::string::npos or line.find("recvfrom") != std::string::npos
+			or line.find("send") != std::string::npos or line.find("recv") != std::string::npos)
 		{
 			std::istringstream linestream(line);
 			linestream >> pid;

@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 		std::istringstream linestream(line);
 		
 		linestream >> pid >> token;
-		if(token.find("sendto") != std::string::npos)
+		if(token.find("sendto") != std::string::npos or token.find("send") != std::string::npos)
 		{
 			totalcount++;
 			linestream >> token;
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
 
 		//If something was received then the response message is created and compared to the correct response message
 		//put in 
-		else if(token.find("recvfrom") != std::string::npos)
+		else if(token.find("recvfrom") != std::string::npos or token.find("recv") != std::string::npos)
 		{
 			linestream >> token;
 			std::vector<struct response_message> *responsevector = parseResponse(token);
