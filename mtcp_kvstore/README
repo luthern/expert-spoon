@@ -9,3 +9,6 @@ options:
 Based on an example epserver application written by the mTCP developers.
 Utilizes DPDK 16.04 and mTCP. Uses libcuckoo to provide the data structure
 for the KV store itself (stored in shared memory).
+
+Note: This won't make without changes to Makefile, the references to the 
+mTCP library and DPDK are both wrong.
