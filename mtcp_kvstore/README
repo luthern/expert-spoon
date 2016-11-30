@@ -1,0 +1,11 @@
+kvstore: a DPDK/mTCP enabled kvstore application
+   Single-Process, Multi-threaded Usage:
+      ./kvstore -f kvstore.conf [-N #cores] 
+
+options:
+  -N: number of CPU cores to use. default: all existing cores
+  -f: path to mtcp configuration file
+
+Based on an example epserver application written by the mTCP developers.
+Utilizes DPDK 16.04 and mTCP. Uses libcuckoo to provide the data structure
+for the KV store itself (stored in shared memory).
