@@ -15,6 +15,7 @@ CPPFLAGS = -c -std=c++11 $(COPTS) ${OPTS} ${DEBUG} -D_LARGEFILE_SOURCE \
 	  -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -fpermissive
 
 TARGET = conkv
+
 OBJS = conkv.o link.o str.o ckv_proto.pb.o cuckoo_kvstore.o
 
 LIBS = -lpthread -levent -lglog -lprotobuf -I/usr/local/lib/ -lcityhash -L/usr/local/lib/
@@ -28,17 +29,26 @@ opti: all stripall
 
 KV_TEST_OBJS = kvstore_test.o cuckoo_kvstore.o ckv_proto.pb.o
 
-all: $(OBJS) $(TARGET)
+KVSTORELIB_TARGET = kvstorelib
+KVSTORELIB_OBJS = kvstorelib.o cuckoo_kvstore.o
+
+
 
 stripall: $(TARGET)
-	strip $(TARGET)
+	strip $(TARGET)E
+
+kvstorelib: $(KVSTORELIB_OBJS)
+	$(CPP) $(KVSTORELIB_OBJS) -o $@ $(LIBS)
 
 conkv: $(OBJS)
 	$(CPP) $(OBJS) -o $@ $(LIBS)
 
 kv_test: $(KV_TEST_OBJS)
 	$(CPP) $(KV_TEST_OBJS) -o $@ $(LIBS)
-
+	
+kvstorelib.o: kvstorelib.cpp
+	$(CPP) $(CPPFLAGS) $<
+	
 kvstore_test.o: kvstore_test.cpp
 	$(CPP) $(CPPFLAGS) $<
 
