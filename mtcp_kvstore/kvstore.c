@@ -20,7 +20,6 @@
 
 #include "cpu.h"
 #include "debug.h"
-#include "messages.h"
 #include "kvstorelib.h"
 
 #define MAX_FLOW_NUM  (10000)
@@ -161,8 +160,9 @@ SendUntilAvailable(struct thread_context *ctx, int sockid, struct server_vars *s
 /*----------------------------------------------------------------------------*/
 
 //Modifies the buffer input in-place
+//TODO: Remove this function once kvstore is integrated
 static int 
-ProcessKVStoreRequest(struct send_message *send)
+ProcessKVStoreRequest(send_message *send)
 {	
 	int result= 0;
 	printf("OPCODE: %d\n %d\n", send->operation, GET);
@@ -217,8 +217,9 @@ HandleReadEvent(struct thread_context *ctx, int sockid, struct server_vars *sv)
 	// when it is received call CloseConnection!!
 	sv->keep_alive = TRUE; 
 	printf("Calling ProcessKVStoreRequest\n");	
-	ProcessKVStoreRequest((struct send_message *) buf);
-	
+	//ProcessKVStoreRequest((struct send_message *) buf);
+	kvstore_process_packet(buf);
+
 	TRACE_APP("Socket %d KVSTORE Response: \n%s", sockid, buf);
 	sent = mtcp_write(ctx->mctx, sockid, buf, KVSTORE_CONTENT_LEN);
 	TRACE_APP("Socket %d Sent response header: try: %d, sent: %d\n", 
@@ -561,6 +562,8 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	kvstore_create();
+
 	/* register signal handler to mtcp */
 	mtcp_register_signal(SIGINT, SignalHandler);
 
@@ -580,6 +583,7 @@ main(int argc, char **argv)
 	for (i = 0; i < core_limit; i++) {
 		pthread_join(app_thread[i], NULL);
 	}
+	kvstore_destroy();
 	mtcp_destroy();
 	return 0;
 }
