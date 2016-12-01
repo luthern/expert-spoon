@@ -18,6 +18,7 @@
 #include <sstream>
 #include <random>
 #include <algorithm>
+#include <unordered_map>
 
 void help(char * name){
     printf("-n: The number of tests to generate (Default=50)\n");
@@ -70,6 +71,7 @@ int main(int argc, char* argv[])
 	int updatechance = 50;
 	int deletechance = 10;
 	std::vector<std::string> *safekeys = new std::vector<std::string>();
+	std::unordered_map<std::string, int> *keymap = new std::unordered_map<std::string, int>();
 
     	while ((option = getopt(argc, argv,"h:n:k:v:p:t:c:o:a:y:z:l:f:s:w:u:d:")) != -1) {
         	switch (option) {
@@ -160,7 +162,7 @@ int main(int argc, char* argv[])
 		valueoffset = valueLength - rand()%(valuevariance+1);
 
 			for(int i = 0; i<testcount; i++){
-				if(rand()%100+1<readProb and safekeys->size()>=writeamount)
+				if(rand()%100+1<readProb and keymap->size()>=writeamount)
 				{
 					mode = 'r';
 					opcode = 0;
@@ -182,7 +184,7 @@ int main(int argc, char* argv[])
 				if(limit==1)
 				{
 					int randomindex = rand()%(int)limitvector->size();	
-					keystring = limitvector->at(randomindex);;
+					keystring = limitvector->at(randomindex);
 				}
 				else
 				{
@@ -204,18 +206,20 @@ int main(int argc, char* argv[])
 				{
 					//If the command could fail, then either it is changed to a write
 					//or it is allowed to happen, based on failurerate
-					if(std::find(safekeys->begin(), safekeys->end(), keystring) == safekeys->end())
+					if(keymap->find(keystring) == keymap->end())
 					{
 						if(rand()%100>=failurerate)
 						{
 
 							//If there are already known keys in the KV store then it will read from
 							//a safe key or switch to write based on the read probability argument
-							if(safekeys->size()>0)
+							if(keymap->size()>0)
 							{
 								if(rand()%100<readProb)
 								{
-									keystring = std::string(safekeys->at(rand()%safekeys->size()));
+									auto item = keymap->begin();
+									std::advance( item, rand()%keymap->size() );
+									keystring = item->first;
 								}
 								else
 								{
@@ -238,12 +242,14 @@ int main(int argc, char* argv[])
 					opcode = 2;
 					//If the command could fail, then either it is changed to a write
 					//or it is allowed to happen, based on failurerat
-					if(std::find(safekeys->begin(), safekeys->end(), keystring) == safekeys->end())
+					if(keymap->find(keystring) == keymap->end())
 					{
-						if(rand()%100<70 and safekeys->size()>0)
+						if(rand()%100<70 and keymap->size()>0)
 						{
-							keystring = std::string(safekeys->at(rand()%safekeys->size()));
-							safekeys->erase(std::remove(safekeys->begin(), safekeys->end(), keystring), safekeys->end());
+							auto item = keymap->begin();
+							std::advance( item, rand()%keymap->size() );
+							keystring = item->first;
+							keymap->erase(keystring);
 						}
 						else
 						{
@@ -252,7 +258,7 @@ int main(int argc, char* argv[])
 					}
 					else
 					{
-						safekeys->erase(std::remove(safekeys->begin(), safekeys->end(), keystring), safekeys->end());
+						keymap->erase(keystring);
 					}
 				}
 
@@ -260,21 +266,23 @@ int main(int argc, char* argv[])
 				if(mode=='w')
 				{
 					//Changes to insert or update depending on failure rate
-					if(std::find(safekeys->begin(), safekeys->end(), keystring) == safekeys->end())
+					if(keymap->find(keystring) == keymap->end())
 					{
 						if(rand()%100>=failurerate)
 						{
-							if(rand()%100<=updatechance and safekeys->size()>writeamount)
+							if(rand()%100<=updatechance and keymap->size()>writeamount)
 							{
 								mode = 'w';
 								opcode = 3;
-								keystring = std::string(safekeys->at(rand()%safekeys->size()));
+								auto item = keymap->begin();
+								std::advance( item, rand()%keymap->size() );
+								keystring = item->first;
 							}
 							else
 							{	
 								mode='w';
 								opcode = 1;
-								safekeys->push_back(keystring);
+								keymap->insert(std::make_pair(keystring, 0));
 							}
 						}
 						else
@@ -283,7 +291,10 @@ int main(int argc, char* argv[])
 							{
 								mode='w';
 								opcode = 1;
-								keystring = std::string(safekeys->at(rand()%safekeys->size()));
+								auto item = keymap->begin();
+								std::advance( item, rand()%keymap->size() );
+								keystring = item->first;
+								keymap->insert(std::make_pair(keystring, 0));
 							}
 							else	
 							{
@@ -316,7 +327,7 @@ int main(int argc, char* argv[])
 				ofs << "\n";
 			}
 			ofs.close();
-			safekeys->clear();
+			keymap->clear();
 	}
 }
 
