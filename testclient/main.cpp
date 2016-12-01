@@ -50,18 +50,11 @@ int init_connection(uint32_t ip_addr, uint16_t port){
 struct send_message parseLine(std::string line){
 
 	struct send_message request;
-	char op = line[0];
 
-	//Sets the integer operation field of the send message struct
-	//depending on the first character of the line in the file
-	if(op=='r')
-	{
-		request.operation = 0;
-	}
-	if(op=='w')
-	{
-		request.operation = 1;
-	}
+	//The opcode is now a number that is the first character of each line (0-4)
+	std::string opstr = "";
+	opstr.push_back(line[0]);
+	request.operation = stoi(opstr);
 
 	int index = 2;
 	int keyindex = 0;
@@ -152,14 +145,14 @@ uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
 		linecount++;
 
 		//Debug printing statements to show that msg[i] was set properly
-		/*for(int q = 0; q<16; q++){
+		for(int q = 0; q<16; q++){
 			std::cout << msgs[i].key[q];
 		}
 		std::cout << ":";
 		for(int g = 0; g<32; g++){
 			std::cout << msgs[i].value[g];
 		}
-		std::cout << "\n";*/
+		std::cout << "\n";
 	}
         send(s, msgs, sizeof(struct send_message) * msgs_per_request, 0);
         recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), 0);
