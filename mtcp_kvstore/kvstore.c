@@ -21,6 +21,7 @@
 #include "cpu.h"
 #include "debug.h"
 #include "kvstorelib.h"
+#include "messages.h"
 
 #define MAX_FLOW_NUM  (10000)
 
@@ -218,7 +219,7 @@ HandleReadEvent(struct thread_context *ctx, int sockid, struct server_vars *sv)
 	sv->keep_alive = TRUE; 
 	printf("Calling ProcessKVStoreRequest\n");	
 	//ProcessKVStoreRequest((struct send_message *) buf);
-	kvstore_process_packet(buf);
+	kvstore_process_packet((int8_t*)buf);
 
 	TRACE_APP("Socket %d KVSTORE Response: \n%s", sockid, buf);
 	sent = mtcp_write(ctx->mctx, sockid, buf, KVSTORE_CONTENT_LEN);
@@ -513,7 +514,8 @@ main(int argc, char **argv)
 	int cores[MAX_CPUS];
 	int i, o;
 
-	num_cores = GetNumCPUs();
+	//num_cores = GetNumCPUs();
+	num_cores = sysconf(_SC_NPROCESSORS_ONLN);
 	core_limit = num_cores;
 
 	if (argc < 1) {

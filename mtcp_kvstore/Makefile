@@ -1,5 +1,5 @@
 TARGETS = kvstore
-CC=g++ -g -O3 -Wall -Werror -fgnu89-inline
+CC=g++ -g -O3 -Wall  -fgnu89-inline
 DPDK=1
 PS=0
 NETMAP=0

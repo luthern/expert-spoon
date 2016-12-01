@@ -31,7 +31,7 @@ int8_t kvstore_destroy()
 	return 0;
 }
 
-int8_t kvstore_process_packet(uint8_t * pkt_buf)
+int8_t kvstore_process_packet(int8_t * pkt_buf)
 {
 	//Handle processing code here. Invoke cuckoo hash functions from here
 	int result= 0;
@@ -42,14 +42,17 @@ int8_t kvstore_process_packet(uint8_t * pkt_buf)
 		case GET:
 			//TRACE_APP("Received a GET request for %u\n", send->key);
 			printf("Received a GET request\n");
+			result = (int8_t) ptr_KVStore->find(KEY_CAST(send->key),&VALUE_CAST(send->value)); 			
 			break;
 		case PUT:
 			//TRACE_APP("Received a PUT request for %u,%u\n", send->key, send->value);
 			printf("Received a PUT request\n");
+			result = (int8_t) ptr_KVStore->insert(KEY_CAST(send->key), VALUE_CAST(send->value));
 			break;
 		case DELETE:
 			//TRACE_APP("Received a DELETE request for %u\n", send->key);
 			printf("Received a DELETE request\n");
+			result = (int8_t) ptr_KVStore->erase(KEY_CAST(send->key));			
 			break;
 		case TERMINATE:
 			// CloseConnection. May need more arguments for this function... :(
@@ -61,6 +64,7 @@ int8_t kvstore_process_packet(uint8_t * pkt_buf)
 			printf("Received a bad KVSTORE request opcode %d\n", send->operation);
 			exit(1);
 	}
+	printf("\n kvstore_process_packet returns %i ",result);
 	return result;
 }
 
