@@ -53,13 +53,13 @@
 #define HT_SUPPORT FALSE
 
 // Remove these lines to suppress TRACE_* output.
-#ifndef DBGERR
-#define DBGERR
-#endif
+//#ifndef DBGERR
+//#define DBGERR
+//#endif
 
-#ifndef APP
-#define APP
-#endif
+//#ifndef APP
+//#define APP
+//#endif
 
 /*----------------------------------------------------------------------------*/
 struct thread_context
@@ -280,11 +280,11 @@ RunServerThread(void *arg)
 
 		do_accept = FALSE;
 		for (i = 0; i < nevents; i++) {
-			printf("\n VED:: Received events %u",events[i].events);
+			//printf("\n VED:: Received events %u",events[i].events);
 
 			if (events[i].data.sockid == listener) {
 				/* if the event is for the listener, accept connection */
-				printf("\n VED:: Decided to accept the connection");
+				//printf("\n VED:: Decided to accept the connection");
 				do_accept = TRUE;
 
 			} else if (events[i].events & MTCP_EPOLLERR) {
@@ -333,10 +333,10 @@ RunServerThread(void *arg)
 							events[i].data.sockid);
 				}
 			
-			}*/ 
+			} 
 			else {
 				assert(0);
-			}
+			}*/
 		}
 
 		/* if do_accept flag is set, accept connections */
