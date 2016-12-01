@@ -315,7 +315,8 @@ int main(int argc, char* argv[])
 
 				ofs << "\n";
 			}
-
+			ofs.close();
+			safekeys->clear();
 	}
 }
 

@@ -55,6 +55,7 @@ struct send_message parseLine(std::string line){
 	std::string opstr = "";
 	opstr.push_back(line[0]);
 	request.operation = stoi(opstr);
+	request.keepalive = 1;
 
 	int index = 2;
 	int keyindex = 0;
@@ -154,6 +155,11 @@ uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
 		}
 		std::cout << "\n";
 	}
+	msgs_sent += msgs_per_request;
+	if(msgs_sent==num_of_msgs_per_connection)
+	{
+		msgs[msgs_per_request-1].keepalive = 0;
+	}
         send(s, msgs, sizeof(struct send_message) * msgs_per_request, 0);
         recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), 0);
         if(g_verbose){
@@ -161,7 +167,6 @@ uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
                 print_response_message(&resp_msgs[i]);
             }
         }
-        msgs_sent += msgs_per_request;
         if(delay)
             usleep(delay * 1000);
     }
