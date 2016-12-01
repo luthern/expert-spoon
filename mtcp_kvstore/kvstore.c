@@ -21,6 +21,8 @@
 #include "cpu.h"
 #include "debug.h"
 #include "messages.h"
+#include "kvstorelib.h"
+
 #define MAX_FLOW_NUM  (10000)
 
 #define RCVBUF_SIZE (2*1024)
