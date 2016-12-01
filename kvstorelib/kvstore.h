@@ -31,7 +31,7 @@ public:
 
 inline bool operator == (const KVStore::Key & lhs, const KVStore::Key & rhs)
 {
-	return !memcmp(lhs.key, rhs.key, 16);
+	return !memcmp(lhs.key, rhs.key, sizeof(KVStore::Key));
 }
 
 #endif /* KVSTORE_H */

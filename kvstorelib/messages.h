@@ -15,7 +15,6 @@ typedef enum {
 	PUT,
 	DELETE,
 	UPDATE,
-	TERMINATE,
 } Operation;
 
 typedef enum {
@@ -26,15 +25,17 @@ typedef enum {
 } StatusCode;
 
 struct send_message {
-	uint8_t operation;
-	unsigned char key[16];
-	unsigned char value[32];
+	char operation;
+	char keepalive;	
+	char key[16];
+	char value[32];
 };
 
 struct response_message {
-	uint8_t status_code;
-	unsigned char key[16];
-	unsigned char value[32];
+	char status_code;
+	char keepalive;
+	char key[16];
+	char value[32];
 };
 
 #endif /* MESSAGES_H */

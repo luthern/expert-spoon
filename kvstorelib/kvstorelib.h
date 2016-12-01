@@ -14,7 +14,7 @@ extern "C" {
 
 int8_t kvstore_create();
 int8_t kvstore_destroy();
-int8_t kvstore_process_packet(int8_t * pkt_buf);
+int8_t kvstore_process_packet(char * pkt_buf);
 
 #ifdef __cplusplus
 }

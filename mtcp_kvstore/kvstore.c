@@ -31,7 +31,7 @@
 #define MAX_EVENTS (MAX_FLOW_NUM * 3)
 
 // this is uint8_t + 16 byte key + 32 byte value
-#define KVSTORE_CONTENT_LEN 49
+#define KVSTORE_CONTENT_LEN 50
 
 #define MAX_CPUS 16
 
@@ -62,21 +62,10 @@
 #endif
 
 /*----------------------------------------------------------------------------*/
-struct server_vars
-{
-	int recv_len;
-	int request_len;
-	long int total_read, total_sent;
-	uint8_t done;
-	uint8_t rspheader_sent;
-	uint8_t keep_alive;
-};
-/*----------------------------------------------------------------------------*/
 struct thread_context
 {
 	mctx_t mctx;
 	int ep;
-	struct server_vars *svars;
 };
 /*----------------------------------------------------------------------------*/
 static int num_cores;
@@ -85,88 +74,18 @@ static pthread_t app_thread[MAX_CPUS];
 static int done[MAX_CPUS];
 static char *conf_file = NULL;
 /*----------------------------------------------------------------------------*/
-static int finished;
-/*----------------------------------------------------------------------------*/
-void
-CleanServerVariable(struct server_vars *sv)
-{
-	sv->recv_len = 0;
-	sv->request_len = 0;
-	sv->total_read = 0;
-	sv->total_sent = 0;
-	sv->done = 0;
-	sv->rspheader_sent = 0;
-	sv->keep_alive = 0;
-}
-/*----------------------------------------------------------------------------*/
 void 
-CloseConnection(struct thread_context *ctx, int sockid, struct server_vars *sv)
+CloseConnection(struct thread_context *ctx, int sockid)
 {
 	mtcp_epoll_ctl(ctx->mctx, ctx->ep, MTCP_EPOLL_CTL_DEL, sockid, NULL);
 	mtcp_close(ctx->mctx, sockid);
 }
 /*----------------------------------------------------------------------------*/
 static int 
-SendUntilAvailable(struct thread_context *ctx, int sockid, struct server_vars *sv)
-{
-	int sent;
-
-	if (sv->done || !sv->rspheader_sent) {
-		return 0;
-	}
-
-	sent = 0;
-	//ret = 1;
-	
-	/*
-	while (ret > 0) {
-		len = MIN(SNDBUF_SIZE, sv->fsize - sv->total_sent);
-		if (len <= 0) {
-			break;
-		}
-		ret = mtcp_write(ctx->mctx, sockid,  
-				fcache[sv->fidx].file + sv->total_sent, len);
-		if (ret < 0) {
-			TRACE_APP("Connection closed with client.\n");
-			break;
-		}
-		TRACE_APP("Socket %d: mtcp_write try: %d, ret: %d\n", sockid, len, ret);
-		sent += ret;
-		sv->total_sent += ret;
-	}*/
-
-	//if (sv->total_sent >= fcache[sv->fidx].size) {
-	if (1) {
-		struct mtcp_epoll_event ev;
-		sv->done = TRUE;
-		finished++;
-
-		if (sv->keep_alive) {
-			// if keep-alive connection, wait for the incoming request 
-			ev.events = MTCP_EPOLLIN;
-			ev.data.sockid = sockid;
-			mtcp_epoll_ctl(ctx->mctx, ctx->ep, MTCP_EPOLL_CTL_MOD, sockid, &ev);
-
-			CleanServerVariable(sv);
-		} else {
-			// else, close connection 
-			CloseConnection(ctx, sockid, sv);
-		}
-	}
-	return sent;
-}
-
-/*----------------------------------------------------------------------------*/
-
-static int 
-HandleReadEvent(struct thread_context *ctx, int sockid, struct server_vars *sv)
+HandleReadEvent(struct thread_context *ctx, int sockid)
 {
 	struct mtcp_epoll_event ev;
 	char buf[KVSTORE_CONTENT_LEN];
-	//char response[KVSTORE_CONTENT_LEN];
-	//time_t t_now;
-	//char t_str[128];
-	//char keepalive_str[128];
 	int rd;
 	int sent;
 
@@ -179,23 +98,26 @@ HandleReadEvent(struct thread_context *ctx, int sockid, struct server_vars *sv)
 	}
 	// for now always keep alive. We need a 'terminate' opcode
 	// when it is received call CloseConnection!!
-	sv->keep_alive = TRUE; 
-	printf("Calling ProcessKVStoreRequest\n");	
-	//ProcessKVStoreRequest((struct send_message *) buf);
-	kvstore_process_packet((int8_t*)buf);
+	TRACE_APP("Calling kvstore_process_packet\n");
+
+	// hacky, but get keepalive value from second byte of struct 
+	char keepalive = buf[1];
+	kvstore_process_packet((char*) buf);
 
 	TRACE_APP("Socket %d KVSTORE Response: \n%s", sockid, buf);
 	sent = mtcp_write(ctx->mctx, sockid, buf, KVSTORE_CONTENT_LEN);
+	
 	TRACE_APP("Socket %d Sent response header: try: %d, sent: %d\n", 
 			sockid, KVSTORE_CONTENT_LEN, sent);
 	assert(sent == KVSTORE_CONTENT_LEN);
-	sv->rspheader_sent = TRUE;
 
 	ev.events = MTCP_EPOLLIN | MTCP_EPOLLOUT;
 	ev.data.sockid = sockid;
 	mtcp_epoll_ctl(ctx->mctx, ctx->ep, MTCP_EPOLL_CTL_MOD, sockid, &ev);
 
-	SendUntilAvailable(ctx, sockid, sv);
+	if (!keepalive) {
+		CloseConnection(ctx, sockid);
+	}
 
 	return rd;
 }
@@ -204,7 +126,6 @@ int
 AcceptConnection(struct thread_context *ctx, int listener)
 {
 	mctx_t mctx = ctx->mctx;
-	struct server_vars *sv;
 	struct mtcp_epoll_event ev;
 	int c;
 
@@ -216,8 +137,6 @@ AcceptConnection(struct thread_context *ctx, int listener)
 			return -1;
 		}
 
-		sv = &ctx->svars[c];
-		CleanServerVariable(sv);
 		TRACE_APP("New connection %d accepted.\n", c);
 		ev.events = MTCP_EPOLLIN;
 		ev.data.sockid = c;
@@ -264,14 +183,6 @@ InitializeServerThread(int core)
 	ctx->ep = mtcp_epoll_create(ctx->mctx, MAX_EVENTS);
 	if (ctx->ep < 0) {
 		TRACE_ERROR("Failed to create epoll descriptor!\n");
-		return NULL;
-	}
-
-	/* allocate memory for server variables */
-	ctx->svars = (struct server_vars *)
-			calloc(MAX_FLOW_NUM, sizeof(struct server_vars));
-	if (!ctx->svars) {
-		TRACE_ERROR("Failed to create server_vars struct!\n");
 		return NULL;
 	}
 
@@ -392,26 +303,28 @@ RunServerThread(void *arg)
 				} else {
 					perror("mtcp_getsockopt");
 				}
-				CloseConnection(ctx, events[i].data.sockid, 
-						&ctx->svars[events[i].data.sockid]);
+				CloseConnection(ctx, events[i].data.sockid);
 
 			} else if (events[i].events & MTCP_EPOLLIN) {
-				ret = HandleReadEvent(ctx, events[i].data.sockid, 
-						&ctx->svars[events[i].data.sockid]);
+				ret = HandleReadEvent(ctx, events[i].data.sockid);
 
 				if (ret == 0) {
 					/* connection closed by remote host */
-					CloseConnection(ctx, events[i].data.sockid, 
-							&ctx->svars[events[i].data.sockid]);
+					CloseConnection(ctx, events[i].data.sockid);
 				} else if (ret < 0) {
 					/* if not EAGAIN, it's an error */
 					if (errno != EAGAIN) {
-						CloseConnection(ctx, events[i].data.sockid, 
-								&ctx->svars[events[i].data.sockid]);
+						CloseConnection(ctx, events[i].data.sockid);
 					}
 				}
 
-			} else if (events[i].events & MTCP_EPOLLOUT) {
+			} 
+			/*
+ 			* TODO: Validate Noah's assumption that this would never happen anyways...
+ 			* We respond immediately to any packet that needs to be responded to, so
+ 			* there should not be anything sitting on the out queue??? wat?
+ 			else if (events[i].events & MTCP_EPOLLOUT) {
+				//TODO: Get rid of SendUntilAvailable and server_vars
 				struct server_vars *sv = &ctx->svars[events[i].data.sockid];
 				if (sv->rspheader_sent) {
 					SendUntilAvailable(ctx, events[i].data.sockid, sv);
@@ -419,8 +332,9 @@ RunServerThread(void *arg)
 					TRACE_APP("Socket %d: Response header not sent yet.\n", 
 							events[i].data.sockid);
 				}
-
-			} else {
+			
+			}*/ 
+			else {
 				assert(0);
 			}
 		}
@@ -512,8 +426,6 @@ main(int argc, char **argv)
 			break;
 		}
 	}
-
-	finished = 0;
 
 	/* initialize mtcp */
 	if (conf_file == NULL) {
