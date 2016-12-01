@@ -7,7 +7,7 @@ AR = ar
 RM = rm -f
 RANLIB = ranlib
 TOUCH = touch
-INC =
+INC = -I../kvstorelib
 
 DEBUG =
 #OPTS = -Wno-literal-suffix
