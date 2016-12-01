@@ -27,3 +27,8 @@
 *.exe
 *.out
 *.app
+
+# Tmp files
+*~
+*.swp
+*.swo
