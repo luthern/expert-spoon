@@ -109,9 +109,7 @@ CloseConnection(struct thread_context *ctx, int sockid, struct server_vars *sv)
 static int 
 SendUntilAvailable(struct thread_context *ctx, int sockid, struct server_vars *sv)
 {
-	//int ret;
 	int sent;
-	//int len;
 
 	if (sv->done || !sv->rspheader_sent) {
 		return 0;
@@ -160,41 +158,6 @@ SendUntilAvailable(struct thread_context *ctx, int sockid, struct server_vars *s
 
 /*----------------------------------------------------------------------------*/
 
-//Modifies the buffer input in-place
-//TODO: Remove this function once kvstore is integrated
-static int 
-ProcessKVStoreRequest(send_message *send)
-{	
-	int result= 0;
-	printf("OPCODE: %d\n %d\n", send->operation, GET);
-	switch(send->operation)
-	{
-		case GET:
-			TRACE_APP("Received a GET request for %u\n", send->key);
-			printf("Received a GET request\n");	
-			break;
-		case PUT:
-			TRACE_APP("Received a PUT request for %u,%u\n", send->key, send->value);	
-			printf("Received a PUT request\n");	
-			break;
-		case DELETE:
-			TRACE_APP("Received a DELETE request for %u\n", send->key);
-			printf("Received a DELETE request\n");	
-			break; 
-		case TERMINATE:
-			// CloseConnection. May need more arguments for this function... :(
-			TRACE_APP("Received a TERMINATE request\n");
-			printf("Received a TERMINATE request\n");	
-			break;	
-		default:
-			TRACE_ERROR("Bad KVSTORE request opcode\n");
-			printf("Received a bad KVSTORE request opcode %d\n", send->operation);
-			exit(1);
-	}
-	return result;
-}
-
-/*----------------------------------------------------------------------------*/
 static int 
 HandleReadEvent(struct thread_context *ctx, int sockid, struct server_vars *sv)
 {
