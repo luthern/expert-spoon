@@ -2,11 +2,8 @@
 #include "link.h"
 #include "msg.h"
 #include "net.h"
-#include "cuckoo_kvstore.h"
 #include "messages.h"
-
-
-extern KVStore *kvstore;
+#include "kvstorelib.h"
 
 rstatus_t req_recv(NetworkServer *proxy, Link *conn)
 {
@@ -24,32 +21,11 @@ rstatus_t req_recv(NetworkServer *proxy, Link *conn)
 	// Get all the sent messages
 	// and respond back with a value that is just the key repeated twice
 	struct send_message *msgs = (struct send_message *)msg->data();
-	struct response_message *resp_msgs;
 	uint16_t num_msgs = msg->size() / sizeof(struct send_message);
-	resp_msgs = (struct response_message *)malloc(sizeof(struct response_message) * num_msgs);
-	for (size_t i = 0; i < num_msgs; i++) {
-		bool ret = false;
-		if (msgs[i].operation == GET)
-			ret = kvstore->find(KEY_CAST(msgs[i].key), &VALUE_CAST(resp_msgs[i].value));
-		if (msgs[i].operation == PUT) {
-			if (kvstore->contains(KEY_CAST(msgs[i].key)))
-				ret = kvstore->update(KEY_CAST(msgs[i].key), VALUE_CAST(msgs[i].value));
-			else
-				ret = kvstore->insert(KEY_CAST(msgs[i].key), VALUE_CAST(msgs[i].key));
-		}
-		if (msgs[i].operation == DELETE)
-			ret = kvstore->erase(KEY_CAST(msgs[i].key));
-
-		if (ret == true)
-			resp_msgs[i].status_code = OK;
-		else
-			resp_msgs[i].status_code = ERROR;
-
-		memcpy(resp_msgs[i].key, msgs[i].key, sizeof(KVStore::Key));
-	}
-	delete msg;
+	for (size_t i = 0; i < num_msgs; i++)
+		kvstore_process_packet((char*)&msgs[i]);
 	// populate the response buffer queue
-	Buffer *rsp = new Buffer((char*)resp_msgs, sizeof(struct response_message) * num_msgs);
+	Buffer *rsp = new Buffer((char*)msgs, sizeof(struct response_message) * num_msgs);
 
 	conn->omsg_q.push_back(rsp);
 	Fdevents *fdes = proxy->get_fdes();

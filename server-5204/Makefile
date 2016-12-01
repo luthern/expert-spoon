@@ -8,6 +8,7 @@ RM = rm -f
 RANLIB = ranlib
 TOUCH = touch
 INC = -I../kvstorelib
+LIB = ../kvstorelib/kvstorelib.o ../kvstorelib/cuckoo_kvstore.o
 
 DEBUG =
 #OPTS = -Wno-literal-suffix
@@ -20,7 +21,7 @@ CPPFLAGS = -c -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing
 
-OBJS = fde.o link.o msg.o net.o server.o resp.o cuckoo_kvstore.o
+OBJS = fde.o link.o msg.o net.o server.o resp.o
 TARGET = server-5204
 UTIL_OBJS = ./util/log.o ./util/config.o ./util/bytes.o ./util/sorted_set.o ./util/app.o
 UTIL_LIB = ./util/libutil.a
@@ -63,7 +64,7 @@ $(UTIL_LIB) : $(UTIL_OBJS)
 	${CPP} ${CPPFLAGS} -c -o $@ $<
 
 server-5204: $(OBJS) $(UTIL_LIB)
-	$(CPP) $(LDFLAGS) $(OBJS) -o $@ $(UTIL_LIB)
+	$(CPP) $(LDFLAGS) $(LIB)  $(OBJS) -o $@ $(UTIL_LIB)
 
 fde.o: fde.cpp fde.h fde_epoll.cpp fde_select.cpp
 	$(CPP) $(CPPFLAGS) $<
