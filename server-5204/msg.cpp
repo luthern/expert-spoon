@@ -3,7 +3,7 @@
 #include "msg.h"
 #include "net.h"
 #include "cuckoo_kvstore.h"
-#include "../messages.h"
+#include "messages.h"
 
 
 extern KVStore *kvstore;
