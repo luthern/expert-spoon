@@ -10,11 +10,13 @@
 void print_response_message(struct response_message * resp){
     char key[16 * 2 + 1];
     char value[32 * 2 + 1];
-
+    key[32] ='\0';
+    value[64] = '\0';
     char *key_ptr = key;
     for(int i = 0; i < 16; i++){
         key_ptr += sprintf(key_ptr, "%02X", resp->key[i]);
     }
+    
 
     char *val_ptr = value;
     for(int i = 0; i < 32; i++){
@@ -28,7 +30,7 @@ void print_response_message(struct response_message * resp){
 void print_send_message(struct send_message * send){
     char key[16 * 2 + 1];
     char *key_ptr = key;
-
+    key[32] ='\0';
     for(int i = 0; i < 16; i++){
         key_ptr += sprintf(key_ptr, "%02X", send->key[i]);
     }
