@@ -295,7 +295,7 @@ void run_benchmark(uint32_t ip_addr, uint16_t port, uint16_t num_of_connections,
 	std::stringstream stream2;
 	stream2 << requestindex;
 	std::string filetitle = filename + stream2.str() + ".txt";
-        br.messages_sent = send_udp_requests(s,msgs_per_request, num_of_msgs_per_connection ,delay, &server, filetitle);
+        br.messages_sent = send_tcp_requests(s,msgs_per_request, num_of_msgs_per_connection , delay, filetitle);
         clock_gettime(CLOCK_MONOTONIC, &br.tend);
         write(write_fd, &br, sizeof(struct benchmark_results));
         close(s);

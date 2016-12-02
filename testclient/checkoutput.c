@@ -16,30 +16,33 @@
 #include <unordered_map>
 
 struct send_message {
-    uint8_t operation;
+    char operation;
+    char keepalive;
     char key[16];
     char value[32];
 };
 
 struct response_message {
-    uint8_t status_code;
+    char status_code;
+    char keepalive;
     char key[16];
     char value[32];
 };
 
 //Compares the received response message and the expected response message to check for correctness
+//Returns 1 if the key and value of the response is equal to check response, otherwise returns 0
 double compareResp(struct response_message resp, struct response_message checkresp){
 	double total = 0;
 	double correct = 0;
 	for(int i=0; i<16; i++)
 	{	total++;
-		if(resp.key[i]==checkresp.key[i]) correct++;//return 0;
+		if(resp.key[i]!=checkresp.key[i]) return 0;
 	}
 	for(int j=0; j<32; j++)
 	{	total++;
-		if(resp.value[j]==checkresp.value[j])correct++;// return 0;
+		if(resp.value[j]!=checkresp.value[j]) return 0;
 	}
-	return correct/total;
+	return 1;//correct/total;
 }
 
 
@@ -50,10 +53,11 @@ std::vector<struct send_message> *parseSend(std::string token){
 	std::vector<struct send_message> *sendvector = new std::vector<struct send_message>();
 	memset(send.key, 0, 16*sizeof(char));
 	memset(send.value, 0, 32*sizeof(char));
+	send.keepalive = 1;
 	send.operation = stoi(token.substr(2, 1));
 	int keyindex = 0;
 	int valueindex = 0;
-	int currentindex = 3;
+	int currentindex = 5;
 	char currentchar;
 	std::string nums = "0123456789";
 	int number;
@@ -114,9 +118,10 @@ std::vector<struct response_message> *parseResponse(std::string token){
 	memset(resp.key, 0, 16*sizeof(char));
 	memset(resp.value, 0, 32*sizeof(char));
 	resp.status_code= (uint8_t)stoi(token.substr(2, 1));
+	resp.keepalive = 0;
 	int keyindex = 0;
 	int valueindex = 0;
-	int currentindex = 3;
+	int currentindex = 5;
 	char currentchar;
 	std::string nums = "01234567890";
 	int number;
@@ -194,7 +199,6 @@ int main(int argc, char* argv[])
 		linestream >> pid >> token;
 		if(token.find("sendto") != std::string::npos or token.find("send") != std::string::npos)
 		{
-			totalcount++;
 			linestream >> token;
 			std::vector<struct send_message> *sendvector = parseSend(token);
 			std::vector<struct response_message> *responsevector = new std::vector<struct response_message>();
@@ -207,9 +211,17 @@ int main(int argc, char* argv[])
 				memset(expectedresponse.key, 0, 16);
 				memset(expectedresponse.value, 0, 32);
 				memcpy(expectedresponse.key, send.key, 16);
+
+				//This is the code that creates the expected response for every send message sent
+				//So it needs to be changed if the protocol is changed
+				//It currently doesn't account for failures, so it won't be accurate if an insert fails
+				//or something like that
+				//It could be edited to check the status code's of response messages if a failure is predicted
 				if(send.operation==0)
 				{
 				
+					//If a GET operation is being done then hashmap is used to determine what
+					//a correct response message value would be
 					auto item = hashmap->find(std::string(send.key, 16));
 					if(hashmap->count(std::string(send.key, 16))==1)
 					{
@@ -219,21 +231,36 @@ int main(int argc, char* argv[])
 				}
 				else
 				{	
+					//If an INSERT/UPDATE/DELETE operation is done instead of GET then the expected response's value
+					//is set to the value of the send message and the hashmap is updated
 					memcpy(expectedresponse.value, send.value, 32);
 					std::string sendkey = std::string(send.key, 16);
 					std::string sendvalue = std::string(send.value, 32);
-					if(hashmap->count(sendkey)==0)
-					{	
-						hashmap->insert(std::make_pair(sendkey, sendvalue));
+					if(send.operation==1 || send.operation==3)
+					{
+						if(hashmap->count(sendkey)==0)
+						{	
+							hashmap->insert(std::make_pair(sendkey, sendvalue));
+						}
+						else
+						{
+							hashmap->find(sendkey)->second = sendvalue;
+						}
 					}
 					else
 					{
-						hashmap->find(sendkey)->second = sendvalue;
+						if(hashmap->count(sendkey)==0)
+						{	
+							hashmap->erase(sendkey);
+						}
 					}
 				}
+
+				//Pushes expected response onto the responsevector
 				responsevector->push_back(expectedresponse);
 			}
-			if(checkmap->count(pid)==0){
+			if(checkmap->count(pid)==0)
+			{
 				checkmap->insert(std::make_pair(pid, responsevector));
 			}
 			else
@@ -242,21 +269,22 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		//If something was received then the response message is created and compared to the correct response message
-		//put in 
+		//If something was received then the response message is created and compared to the correct response messages
+		//found in responsevector
 		else if(token.find("recvfrom") != std::string::npos or token.find("recv") != std::string::npos)
 		{
 			linestream >> token;
 			std::vector<struct response_message> *responsevector = parseResponse(token);
 			std::vector<struct response_message> *checkresp = checkmap->at(pid);
-			if(responsevector == checkresp)
+			for(int r=0; r<responsevector->size(); r++)
 			{
-				correctcount += 1;//compareResp(resp, checkresp);
+				totalcount++;
+				correctcount += compareResp(responsevector->at(r), checkresp->at(r));
 			}
 ;
 		}
 	}
-	std::cout << correctcount/totalcount << "\n";
+	std::cout << "Correctness: " << 100*correctcount/totalcount << "%\n";
 }
 
 
