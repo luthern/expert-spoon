@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <fcntl.h>
 
 #include "utils.h"
 
@@ -46,22 +47,28 @@ uint32_t send_tcp_requests(int s, uint16_t msgs_per_request,
 			   uint32_t num_of_msgs_per_connection, uint32_t delay)
 {
 	uint32_t msgs_sent = 0;
+	struct send_message msgs[msgs_per_request];
+	struct response_message resp_msgs[msgs_per_request];
 
-	while (msgs_sent < num_of_msgs_per_connection) {
-		struct send_message msgs[msgs_per_request];
-		struct response_message resp_msgs[msgs_per_request];
-		for (int i = 0; i < msgs_per_request; i++) {
-			msgs[i].operation = GET;
-			for (int j = 0; j < 16; j++)
-				msgs[i].key[j] = rand() % 256;
-		}
+	for (int i = 0; i < msgs_per_request; i++) {
+		for (int j = 0; j < 16; j++)
+			msgs[i].key[j] = 0x20;
+		for (int j = 0; j < 32; j++)
+			msgs[i].value[j] = 0xFF;
+		msgs[i].operation = GET;
+		msgs[i].keepalive = 4;
+	}
+	while (msgs_sent < num_of_msgs_per_connection - 100) {
 		send(s, msgs, sizeof(struct send_message) * msgs_per_request, 0);
-		recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), 0);
+		if (msgs_sent == num_of_msgs_per_connection - 1)
+			recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), MSG_DONTWAIT);
+		else
+			recv(s, resp_msgs, msgs_per_request * sizeof(struct response_message), MSG_DONTWAIT);
 		if (g_verbose)
-			for (int i = 0; i < msgs_per_request; i++) {
+			for (int i = 0; i < msgs_per_request; i++)
 				print_send_message(&msgs[i]);
-				print_response_message(&resp_msgs[i]);
-			}
+		//print_response_message(&resp_msgs[i]);
+
 		msgs_sent += msgs_per_request;
 		if (delay)
 			usleep(delay * 1000);
@@ -196,6 +203,7 @@ int main(int argc, char *argv[])
 	uint32_t num_of_msgs_per_connection = 1024;
 	uint8_t req_args = 0b11;
 	uint32_t delay = 0;
+
 	while ((option = getopt(argc, argv, "vhi:p:c:m:d:n:")) != -1) {
 		switch (option) {
 		case 'i':

@@ -10,7 +10,7 @@ COPTS = -Wall -Wno-deprecated
 CFLAGS = -c $(COPTS) ${OPTS} ${DEBUG} -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall
-CPPFLAGS = -c -std=c++11 $(COPTS) ${OPTS} ${DEBUG} -D_LARGEFILE_SOURCE \
+CPPFLAGS = -c -fPIC -std=c++11 $(COPTS) ${OPTS} ${DEBUG} -D_LARGEFILE_SOURCE \
 	  -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	  -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -fpermissive
 
@@ -24,7 +24,7 @@ dbg: all
 opti: OPTS += -O2
 opti: all kvstorelib.o cuckoo_kvstore.o
 
-all: kvstorelib.a kvstorelib.o cuckoo_kvstore.o
+all: kvstorelib.so kvstorelib.o cuckoo_kvstore.o
 
 KVSTORELIB_OBJS = kvstorelib.o cuckoo_kvstore.o
 
@@ -34,8 +34,8 @@ stripall: $(TARGET)
 	strip $(TARGET)E
 
 
-kvstorelib.a: kvstorelib.o cuckoo_kvstore.o
-	ar rcs kvstorelib.a kvstorelib.o cuckoo_kvstore.o
+kvstorelib.so: kvstorelib.o cuckoo_kvstore.o
+	gcc kvstorelib.o cuckoo_kvstore.o -shared -o libkvstorelib.so
 
 kvstorelib.o: kvstorelib.cpp
 	$(CPP) $(CPPFLAGS) $<

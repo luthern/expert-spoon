@@ -53,13 +53,13 @@
 #define HT_SUPPORT FALSE
 
 // Remove these lines to suppress TRACE_* output.
-#ifndef DBGERR
-#define DBGERR
-#endif
+//#ifndef DBGERR
+//#define DBGERR
+//#endif
 
-#ifndef APP
-#define APP
-#endif
+//#ifndef APP
+//#define APP
+//#endif
 
 /*----------------------------------------------------------------------------*/
 struct thread_context
@@ -90,12 +90,19 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 	int sent;
 
 	/* KV store request handling */
-	rd = mtcp_read(ctx->mctx, sockid, buf, KVSTORE_CONTENT_LEN);
-	if (rd <= 0) {
-		// read failed, mTCP should provide errno but this example
-		// doesn't check it, yay.
-		return rd;
+	int content_read = 0;
+	while(content_read != KVSTORE_CONTENT_LEN) {
+		rd = mtcp_read(ctx->mctx, sockid, buf + content_read, KVSTORE_CONTENT_LEN - content_read);
+		if (rd <= 0) {
+			// read failed, mTCP should provide errno but this example
+			// doesn't check it, yay.
+			return rd;
+		}
+		content_read += rd;
 	}
+	
+	//printf("%02x Read: %d", buf[0],rd);
+	//printf("\n");
 	// for now always keep alive. We need a 'terminate' opcode
 	// when it is received call CloseConnection!!
 	TRACE_APP("Calling kvstore_process_packet\n");
@@ -109,6 +116,8 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 	
 	TRACE_APP("Socket %d Sent response header: try: %d, sent: %d\n", 
 			sockid, KVSTORE_CONTENT_LEN, sent);
+	if (sent != 50)
+		printf("Sent: %d\n", sent);
 	assert(sent == KVSTORE_CONTENT_LEN);
 
 	ev.events = MTCP_EPOLLIN | MTCP_EPOLLOUT;
@@ -280,11 +289,11 @@ RunServerThread(void *arg)
 
 		do_accept = FALSE;
 		for (i = 0; i < nevents; i++) {
-			printf("\n VED:: Received events %u",events[i].events);
+			//printf("\n VED:: Received events %u",events[i].events);
 
 			if (events[i].data.sockid == listener) {
 				/* if the event is for the listener, accept connection */
-				printf("\n VED:: Decided to accept the connection");
+				//printf("\n VED:: Decided to accept the connection");
 				do_accept = TRUE;
 
 			} else if (events[i].events & MTCP_EPOLLERR) {
@@ -333,10 +342,10 @@ RunServerThread(void *arg)
 							events[i].data.sockid);
 				}
 			
-			}*/ 
+			} 
 			else {
 				assert(0);
-			}
+			}*/
 		}
 
 		/* if do_accept flag is set, accept connections */
