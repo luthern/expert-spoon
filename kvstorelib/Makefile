@@ -35,7 +35,7 @@ stripall: $(TARGET)
 
 
 kvstorelib.so: kvstorelib.o cuckoo_kvstore.o
-	gcc kvstorelib.o cuckoo_kvstore.o -shared -o kvstorelib.so
+	gcc kvstorelib.o cuckoo_kvstore.o -shared -o libkvstorelib.so
 
 kvstorelib.o: kvstorelib.cpp
 	$(CPP) $(CPPFLAGS) $<

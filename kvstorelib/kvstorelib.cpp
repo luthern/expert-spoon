@@ -52,14 +52,18 @@ int8_t kvstore_process_packet(char * pkt_buf)
 			result = (bool) ptr_KVStore->update(KEY_CAST(send->key), VALUE_CAST(send->value));
 			break;
 		default:
+			//for (int i = 0; i < 50; i++) {
+			//	printf("%02x", pkt_buf[i]);
+			//}
+			//printf("\n");
 			printf("Received a bad KVSTORE request opcode %d\n", send->operation);
 			exit(1);
 	}
 	if (result) { 
-		pkt_buf[0] = OK;
+		send->operation = OK;
 	}
 	else {
-		pkt_buf[0] = ERROR;
+		send->operation = ERROR;
 	}
 
 	//printf("kvstore_process_packet returns %i\n",result);
