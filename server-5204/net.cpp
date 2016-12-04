@@ -5,7 +5,7 @@
 NetworkServer::NetworkServer(void) {
 	fdes = new Fdevents();
 
-	client_conn = Link::listen("127.0.0.1", 12345);
+	client_conn = Link::listen("192.168.0.151", 12345);
 	if(client_conn == NULL){
 		fprintf(stderr, "error opening server socket! %s\n", strerror(errno));
 		exit(1);
