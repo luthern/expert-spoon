@@ -12,7 +12,7 @@ INC = -I../kvstorelib
 DEBUG =
 #OPTS = -Wno-literal-suffix
 OPTS = -Wno-literal-suffix -Wall
-LDFLAGS = -lrt
+LDFLAGS = -lrt -lev
 CFLAGS = -c $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall
@@ -47,6 +47,12 @@ utils.o: utils.cpp utils.h
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 client.o: main.cpp
+	$(CPP) $(CPPFLAGS) -o $@  $<
+
+evclient: evclient.o
+	$(CPP) evclient.o $(LDFLAGS) -o $@
+
+evclient.o: libevclient.cpp
 	$(CPP) $(CPPFLAGS) -o $@  $<
 
 #valgrind:
