@@ -7,17 +7,17 @@ AR = ar
 RM = rm -f
 RANLIB = ranlib
 TOUCH = touch
-INC = -I../kvstorelib
-LIB = ../kvstorelib/kvstorelib.o ../kvstorelib/cuckoo_kvstore.o
-
+INC = -I../kvstorelib 
+#LIB = ../kvstorelib/kvstorelib.o ../kvstorelib/cuckoo_kvstore.o
+LIB = -L../kvstorelib
 DEBUG =
 #OPTS = -Wno-literal-suffix
 OPTS = -Wno-literal-suffix -Wall
-LDFLAGS = -pthread -lcityhash
+LDFLAGS = -pthread -lcityhash -lkvstorelib
 CFLAGS = -c $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing -Wall
-CPPFLAGS = -c -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
+CPPFLAGS = -c -fPIC -std=c++11 $(INC) $(OPTS) $(DEBUG) -D_LARGEFILE_SOURCE \
 	-D_FILE_OFFSET_BITS=64 -D_LARGE_FILE_API -D_LARGEFILE64_SOURCE \
 	-D_GNU_SOURCE -D__STDC_FORMAT_MACROS -fstrict-aliasing
 
