@@ -43,6 +43,28 @@ size_t len = 0;
 int counter = 0;
 int total;
 
+void usage(char *name)
+{
+	printf("%s -i <ip_addr> -p <port> -c <num_of_connections> -m <msg_num> -n <req_num> -d <milliseconds> -v -h\n", name);
+	printf("Example: %s -i 0.0.0.0 -p 12345 -c 12 -m 100 -d 0 -n 100000\n", name);
+}
+
+void help(char * name)
+{
+	usage(name);
+	printf("\n-i: The IP address of the server you are connecting to\n");
+	printf("-p: The port of the server you are connecting to\n");
+	printf("-c(default=1): The number of socket connections you want to send messages from\n");
+	printf("-m(default=1): The number of messages that are sent per request\n");
+	printf("-d(default=0): Time to delay in milliseconds after each request\n");
+	printf("-n: The number of requests you want to send per socket in total\n");
+	printf("-t(default=test): The name of the test files to be read (If -t test is used then it will read from test0.txt, test1.txt, etc. depending on the value of the -c argument");
+	printf("-v: Run the program in verbose mode\n");
+	printf("-h: Displays this message\n");
+
+}
+
+
 //Parses a line from a file to create a send_message struct
 struct send_message parseLine(std::string line)
 {
@@ -222,6 +244,10 @@ int garbage_init(uint32_t ip_addr, uint16_t port, uint16_t num_of_connections,
 	// initialise an io watcher, then start it
 	// this one will watch for stdin to become readable
 	file_in = fopen(filename.c_str(), "r");
+	if (file_in == NULL) {
+		printf("Error opening file!\n");
+		exit(EXIT_FAILURE);
+	}
 	setnonblock(fileno(file_in));
 
 	ev_io_init(&file_watcher, filein_cb, fileno(file_in), EV_READ);
@@ -292,17 +318,18 @@ int main(int argc, char *argv[])
 			//g_verbose = true;
 			break;
 		case 'h':
-			//help(argv[0]);
+			help(argv[0]);
 			exit(EXIT_FAILURE);
 			break;
 		default:
-			//help(argv[0]);
+			help(argv[0]);
 			exit(EXIT_FAILURE);
 		}
 	}
-	if (req_args != 0)
-		//help(argv[0]);
+	if (req_args != 0) {
+		help(argv[0]);
 		exit(EXIT_FAILURE);
+	}
 	garbage_init(ip_addr, port, num_of_connections, msgs_per_request,
 		     num_of_msgs_per_connection, delay, filename);
 	return 0;
