@@ -44,7 +44,7 @@ size_t len = 0;
 int counter = 0;
 int total;
 int lines_written = 0;
-
+int lines_read_from_file = 0;
 
 void usage(char *name)
 {
@@ -121,6 +121,7 @@ static void filein_cb(EV_P_ ev_io *w, int revents)
 		ev_io_start(EV_A_ & send_w);
 		return;
 	}
+	lines_read_from_file++;
 	//printf("%s\n", line);
 	ev_io_stop(EV_A_ & file_watcher);
 	ev_io_stop(EV_A_ & send_w);
@@ -128,22 +129,36 @@ static void filein_cb(EV_P_ ev_io *w, int revents)
 	ev_io_start(EV_A_ & send_w);
 }
 
+int total_bytes_written = 0;
+
 static void send_cb(EV_P_ ev_io *w, int revents)
 {
 	if (revents & EV_WRITE) {
 
+		if (lines_written >= total) {
+			ev_io_stop(EV_A_ & send_w);
+			ev_io_set(&send_w, remote_fd, EV_READ);
+			ev_io_start(EV_A_ & send_w);
+		}
+
 		struct send_message *msg = (struct send_message *)malloc(sizeof(struct send_message));
 		parseLine(std::string(line), msg);
 		//puts("remote ready for writing...");
-		for (int i = 0; i < 32; i++)
-			msg->value[i] = 0xFF;
-		for (int i = 0; i < 16; i++)
-			msg->key[i] = 0x0;
-		int ret = send(remote_fd, &msg, sizeof(struct send_message), 0);
+		// for (int i = 0; i < 32; i++)
+		//      msg->value[i] = 0x00;
+		// for (int i = 0; i < 16; i++)
+		//      msg->key[i] = 0xFF;
+		if (lines_written == total - 1)
+			msg->keepalive = 0;
+
+		int ret = send(remote_fd, msg, sizeof(struct send_message), 0);
+		total_bytes_written += ret;
+		printf("total bytes written %d\n", total_bytes_written);
+		//assert(ret == 50);
 		lines_written++;
 		//printf("send returned %d\n", ret);
 		//print_send_message(msg);
-		free(msg);
+		//free(msg);
 		if (-1 == ret) {
 			perror("echo send");
 			exit(EXIT_FAILURE);
@@ -156,11 +171,11 @@ static void send_cb(EV_P_ ev_io *w, int revents)
 		uint32_t amount_we_can_read;
 		ioctl(remote_fd, FIONREAD, &amount_we_can_read);
 		//printf("n = %d\n", n);
-		if (amount_we_can_read > 400000 || lines_written == total) {
+		if (lines_written % 995 == 0) {
 			ev_io_stop(EV_A_ & send_w);
 			ev_io_set(&send_w, remote_fd, EV_READ);
 			ev_io_start(EV_A_ & send_w);
-			printf("READING\n");
+			//printf("READING\n");
 		} else{
 			ev_io_stop(EV_A_ & send_w);
 			ev_io_set(&send_w, remote_fd, EV_READ | EV_WRITE);
@@ -170,14 +185,14 @@ static void send_cb(EV_P_ ev_io *w, int revents)
 		char str[100];
 
 		int to_read;
+		int bytes_read;
 		//printf("[r,remote]");
-		ioctl(remote_fd, FIONREAD, &to_read);
-		while (to_read >= 50) {
-			recv(remote_fd, str, 50, 0);
-			ioctl(remote_fd, FIONREAD, &to_read);
-			printf("left_to_read %d\n", to_read);
+		//printf("WE ARE HERE\n" );
+		while (recv(remote_fd, str, 50, 0) == 50) {
+			printf("counter = %d\n", counter);
 			counter++;
-			if (counter == total) {
+			//print_response_message((struct response_message *)str);
+			if (counter >= total) {
 				close(remote_fd);
 				//printf("DONE!\n");
 				ev_io_stop(EV_A_ & send_w);
@@ -186,9 +201,16 @@ static void send_cb(EV_P_ ev_io *w, int revents)
 				return;
 			}
 		}
-		ev_io_stop(EV_A_ & file_watcher);
-		ev_io_set(&file_watcher, fileno(file_in), EV_READ);
-		ev_io_start(EV_A_ & file_watcher);
+		if (lines_read_from_file != total) {
+			ev_io_stop(EV_A_ & file_watcher);
+			ev_io_set(&file_watcher, fileno(file_in), EV_READ);
+			ev_io_start(EV_A_ & file_watcher);
+		}else {
+			ev_io_stop(EV_A_ & send_w);
+			ev_io_set(&send_w, remote_fd, EV_READ);
+			ev_io_start(EV_A_ & send_w);
+		}
+
 	}
 }
 
@@ -198,7 +220,7 @@ static void remote_cb(EV_P_ ev_io *w, int revents)
 	puts("connected, now watching stdin");
 	// Once the connection is established, listen to stdin
 	ev_io_start(EV_A_ & file_watcher);
-	// Once we're connected, that's the end of that
+	// Once we're connected, that 's the end of that
 	ev_io_stop(EV_A_ & remote_w);
 }
 
