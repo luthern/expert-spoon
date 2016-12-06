@@ -49,8 +49,8 @@ utils.o: utils.cpp utils.h
 client.o: main.cpp
 	$(CPP) $(CPPFLAGS) -o $@  $<
 
-evclient: evclient.o
-	$(CPP) evclient.o $(LDFLAGS) -o $@
+evclient: evclient.o utils.o
+	$(CPP) evclient.o utils.o $(LDFLAGS) -o $@
 
 evclient.o: libevclient.cpp
 	$(CPP) $(CPPFLAGS) -o $@  $<
