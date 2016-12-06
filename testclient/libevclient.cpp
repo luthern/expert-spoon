@@ -11,6 +11,7 @@
 #include <ev.h>
 #include <sys/un.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 
 #include <sys/fcntl.h>
 
@@ -42,6 +43,8 @@ char* line = NULL;
 size_t len = 0;
 int counter = 0;
 int total;
+int lines_written = 0;
+
 
 void usage(char *name)
 {
@@ -66,16 +69,13 @@ void help(char * name)
 
 
 //Parses a line from a file to create a send_message struct
-struct send_message parseLine(std::string line)
+struct send_message *parseLine(std::string line, struct send_message *request)
 {
-
-	struct send_message request;
-
 	//The opcode is now a number that is the first character of each line (0-4)
 	std::string opstr = "";
 	opstr.push_back(line[0]);
-	request.operation = stoi(opstr);
-	request.keepalive = 1;
+	request->operation = stoi(opstr);
+	request->keepalive = 1;
 
 	int index = 2;
 	int keyindex = 0;
@@ -84,26 +84,26 @@ struct send_message parseLine(std::string line)
 	//Fills in the send message key char array with the chars from the file
 	//The : acts as a seperator between the operator, key, and value
 	while (line[index] != ':' and keyindex < 16) {
-		request.key[keyindex] = line[index];
+		request->key[keyindex] = line[index];
 		index++;
 		keyindex++;
 	}
 	//Fills all remaining spaces in the array with '\0'
 	while (keyindex < 16) {
-		request.key[keyindex] = '\0';
+		request->key[keyindex] = '\0';
 		keyindex++;
 	}
 
 	index++;
 	//Fills in the send message value char array with the chars from the file
 	while (line[index] != ':' and valueindex < 32) {
-		request.value[valueindex] = line[index];
+		request->value[valueindex] = line[index];
 		index++;
 		valueindex++;
 	}
 	//Fills all remaining spaces in the array with '\0'
 	while (valueindex < 32) {
-		request.value[valueindex] = '\0';
+		request->value[valueindex] = '\0';
 		valueindex++;
 	}
 	return request;
@@ -131,51 +131,65 @@ static void filein_cb(EV_P_ ev_io *w, int revents)
 static void send_cb(EV_P_ ev_io *w, int revents)
 {
 	if (revents & EV_WRITE) {
-		struct send_message msg = parseLine(std::string(line));
+
+		struct send_message *msg = (struct send_message *)malloc(sizeof(struct send_message));
+		parseLine(std::string(line), msg);
 		//puts("remote ready for writing...");
-		if (-1 == send(remote_fd, &msg, sizeof(struct send_message), 0)) {
+		for (int i = 0; i < 32; i++)
+			msg->value[i] = 0xFF;
+		for (int i = 0; i < 16; i++)
+			msg->key[i] = 0x0;
+		int ret = send(remote_fd, &msg, sizeof(struct send_message), 0);
+		lines_written++;
+		//printf("send returned %d\n", ret);
+		//print_send_message(msg);
+		free(msg);
+		if (-1 == ret) {
 			perror("echo send");
 			exit(EXIT_FAILURE);
 		}
-		counter++;
 		//printf("counter = %d\n", counter);
 		//printf("total = %d\n", total);
-		if (counter == total) {
-			printf("DONE!\n");
-			ev_io_stop(EV_A_ & send_w);
-			ev_io_stop(EV_A_ & remote_w);
-			ev_io_stop(EV_A_ & file_watcher);
-			return;
-		}
 		// once the data is sent, stop notifications that
 		// data can be sent until there is actually more
 		// data to send
-		ev_io_stop(EV_A_ & send_w);
-		ev_io_set(&send_w, remote_fd, EV_READ | EV_WRITE);
-		ev_io_start(EV_A_ & send_w);
-	}else if (revents & EV_READ) {
-		int n;
-		char str[100] = ".\0";
-
-		printf("[r,remote]");
-		n = recv(remote_fd, str, 100, 0);
-		if (n <= 0) {
-			if (0 == n) {
-				// an orderly disconnect
-				puts("orderly disconnect");
-				ev_io_stop(EV_A_ & send_w);
-				close(remote_fd);
-			}  else if (EAGAIN == errno)
-				puts("should never get in this state with libev");
-			else
-				perror("recv");
-			return;
+		uint32_t amount_we_can_read;
+		ioctl(remote_fd, FIONREAD, &amount_we_can_read);
+		//printf("n = %d\n", n);
+		if (amount_we_can_read > 400000 || lines_written == total) {
+			ev_io_stop(EV_A_ & send_w);
+			ev_io_set(&send_w, remote_fd, EV_READ);
+			ev_io_start(EV_A_ & send_w);
+			printf("READING\n");
+		} else{
+			ev_io_stop(EV_A_ & send_w);
+			ev_io_set(&send_w, remote_fd, EV_READ | EV_WRITE);
+			ev_io_start(EV_A_ & send_w);
 		}
-		printf("socket client said: %s", str);
+	}else if (revents & EV_READ) {
+		char str[100];
+
+		int to_read;
+		//printf("[r,remote]");
+		ioctl(remote_fd, FIONREAD, &to_read);
+		while (to_read >= 50) {
+			recv(remote_fd, str, 50, 0);
+			ioctl(remote_fd, FIONREAD, &to_read);
+			printf("left_to_read %d\n", to_read);
+			counter++;
+			if (counter == total) {
+				close(remote_fd);
+				//printf("DONE!\n");
+				ev_io_stop(EV_A_ & send_w);
+				ev_io_stop(EV_A_ & remote_w);
+				ev_io_stop(EV_A_ & file_watcher);
+				return;
+			}
+		}
+		ev_io_stop(EV_A_ & file_watcher);
+		ev_io_set(&file_watcher, fileno(file_in), EV_READ);
+		ev_io_start(EV_A_ & file_watcher);
 	}
-	ev_io_stop(EV_A_ & file_watcher);
-	ev_io_set(&file_watcher, fileno(file_in), EV_READ);
-	ev_io_start(EV_A_ & file_watcher);
 }
 
 
