@@ -73,6 +73,8 @@ static int core_limit;
 static pthread_t app_thread[MAX_CPUS];
 static int done[MAX_CPUS];
 static char *conf_file = NULL;
+static int num_pkts_recvd = 0;
+static int num_pkts_writ = 0;
 /*----------------------------------------------------------------------------*/
 void 
 CloseConnection(struct thread_context *ctx, int sockid)
@@ -106,6 +108,7 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 		//	printf(" Read %d bytes \n",rd);
 
 		content_read += rd;
+		num_pkts_recvd += rd;
 	}
 	assert(content_read == KVSTORE_CONTENT_LEN);
 	
@@ -134,6 +137,7 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 		//if (sent != KVSTORE_CONTENT_LEN)
 		//	printf("Sent %d bytes\n", sent);
 		content_sent += sent;
+		num_pkts_writ += sent;
 	}
 	
 	TRACE_APP("Socket %d Sent response header: try: %d, sent: %d\n", 
@@ -392,7 +396,8 @@ void
 SignalHandler(int signum)
 {
 	int i;
-
+	printf("Packets Read: %d\n", num_pkts_recvd);
+	printf("Packets Written: %d\n", num_pkts_writ);
 	for (i = 0; i < core_limit; i++) {
 		if (app_thread[i] == pthread_self()) {
 			//TRACE_INFO("Server thread %d got SIGINT\n", i);
