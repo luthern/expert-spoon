@@ -73,6 +73,8 @@ static int core_limit;
 static pthread_t app_thread[MAX_CPUS];
 static int done[MAX_CPUS];
 static char *conf_file = NULL;
+static int num_pkts_recvd = 0;
+static int num_pkts_writ = 0;
 /*----------------------------------------------------------------------------*/
 void 
 CloseConnection(struct thread_context *ctx, int sockid)
@@ -86,6 +88,7 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 {
 	struct mtcp_epoll_event ev;
 	char buf[KVSTORE_CONTENT_LEN];
+	struct response_message * resp = (struct response_message *) malloc(sizeof(struct response_message));
 	int rd;
 	int sent;
 
@@ -96,10 +99,18 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 		if (rd <= 0) {
 			// read failed, mTCP should provide errno but this example
 			// doesn't check it, yay.
-			return rd;
+			if(errno == 11)
+				continue;
+			perror("wat read\n");
+			exit(1);
 		}
+		//if(rd != KVSTORE_CONTENT_LEN)
+		//	printf(" Read %d bytes \n",rd);
+
 		content_read += rd;
+		num_pkts_recvd += rd;
 	}
+	assert(content_read == KVSTORE_CONTENT_LEN);
 	
 	//printf("%02x Read: %d", buf[0],rd);
 	//printf("\n");
@@ -109,18 +120,33 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 
 	// hacky, but get keepalive value from second byte of struct 
 	char keepalive = buf[1];
-	kvstore_process_packet((char*) buf);
 
+	kvstore_process_packet(( const char*) buf, resp);
+	//char keepalive = 0x01;
+	//printf("OP: %d\n", (int8_t) buf[0]);
 	TRACE_APP("Socket %d KVSTORE Response: \n%s", sockid, buf);
-	sent = mtcp_write(ctx->mctx, sockid, buf, KVSTORE_CONTENT_LEN);
+	int content_sent = 0;
+	while (content_sent != KVSTORE_CONTENT_LEN) {	
+		sent = mtcp_write(ctx->mctx, sockid, (const char *) (resp + content_sent), KVSTORE_CONTENT_LEN - content_sent);
+		if (sent < 0) {
+			if(errno == 11)
+				continue;
+			perror("wat write\n");
+			exit(1);
+		}
+		//if (sent != KVSTORE_CONTENT_LEN)
+		//	printf("Sent %d bytes\n", sent);
+		content_sent += sent;
+		num_pkts_writ += sent;
+	}
 	
 	TRACE_APP("Socket %d Sent response header: try: %d, sent: %d\n", 
 			sockid, KVSTORE_CONTENT_LEN, sent);
-	if (sent != 50)
-		printf("Sent: %d\n", sent);
-	assert(sent == KVSTORE_CONTENT_LEN);
+	//if (sent != KVSTORE_CONTENT_LEN)
+	//	printf("Sent: %d\n", sent);
+	//assert(sent == KVSTORE_CONTENT_LEN);
 
-	ev.events = MTCP_EPOLLIN | MTCP_EPOLLOUT;
+	ev.events = MTCP_EPOLLIN; //| MTCP_EPOLLOUT;
 	ev.data.sockid = sockid;
 	mtcp_epoll_ctl(ctx->mctx, ctx->ep, MTCP_EPOLL_CTL_MOD, sockid, &ev);
 
@@ -128,7 +154,7 @@ HandleReadEvent(struct thread_context *ctx, int sockid)
 		CloseConnection(ctx, sockid);
 	}
 
-	return rd;
+	return keepalive;
 }
 /*----------------------------------------------------------------------------*/
 int 
@@ -370,7 +396,8 @@ void
 SignalHandler(int signum)
 {
 	int i;
-
+	printf("Packets Read: %d\n", num_pkts_recvd);
+	printf("Packets Written: %d\n", num_pkts_writ);
 	for (i = 0; i < core_limit; i++) {
 		if (app_thread[i] == pthread_self()) {
 			//TRACE_INFO("Server thread %d got SIGINT\n", i);
