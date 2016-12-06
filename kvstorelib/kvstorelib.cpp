@@ -31,16 +31,16 @@ int8_t kvstore_destroy()
 	return 0;
 }
 
-int8_t kvstore_process_packet(char * pkt_buf)
+int8_t kvstore_process_packet(char * pkt_buf, struct response_message * resp)
 {
 	//Handle processing code here. Invoke cuckoo hash functions from here
 	bool result = false;
 	struct send_message *send = (struct send_message *)(pkt_buf);
 	//printf("OPCODE: %d\n", send->operation);
-	switch(send->operation)
+ 	switch(send->operation)
 	{
 		case GET:
-			result = (bool) ptr_KVStore->find(KEY_CAST(send->key),&VALUE_CAST(send->value)); 			
+			result = (bool) ptr_KVStore->find(KEY_CAST(send->key),&VALUE_CAST(resp->value)); 			
 			break;
 		case PUT:
 			result = (bool) ptr_KVStore->insert(KEY_CAST(send->key), VALUE_CAST(send->value));
@@ -60,12 +60,12 @@ int8_t kvstore_process_packet(char * pkt_buf)
 			exit(1);
 	}
 	if (result) { 
-		send->operation = OK;
+		resp->status_code = OK;
 	}
 	else {
-		send->operation = ERROR;
+		resp->status_code = ERROR;
 	}
-
+	memcpy(resp->key, send->key, 16);
 	//printf("kvstore_process_packet returns %i\n",result);
 	return result;
 }
