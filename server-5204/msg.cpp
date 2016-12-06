@@ -22,10 +22,11 @@ rstatus_t req_recv(NetworkServer *proxy, Link *conn)
 	// and respond back with a value that is just the key repeated twice
 	struct send_message *msgs = (struct send_message *)msg->data();
 	uint16_t num_msgs = msg->size() / sizeof(struct send_message);
+	struct response_message *resp_msgs = (struct response_message *)malloc(num_msgs * sizeof(struct response_message));
 	for (size_t i = 0; i < num_msgs; i++)
-		kvstore_process_packet((char*)&msgs[i]);
+		kvstore_process_packet((char*)&msgs[i], &resp_msgs[i]);
 	// populate the response buffer queue
-	Buffer *rsp = new Buffer((char*)msgs, sizeof(struct response_message) * num_msgs);
+	Buffer *rsp = new Buffer((char*)resp_msgs, sizeof(struct response_message) * num_msgs);
 
 	conn->omsg_q.push_back(rsp);
 	Fdevents *fdes = proxy->get_fdes();
