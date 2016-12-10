@@ -31,40 +31,40 @@ int8_t kvstore_destroy()
 	return 0;
 }
 
-int8_t kvstore_process_packet(const char * pkt_buf, struct response_message * resp)
+int8_t kvstore_process_packet(const char * pkt_buf) // struct response_message * resp)
 {
 	//Handle processing code here. Invoke cuckoo hash functions from here
 	bool result = false;
-	//struct send_message *send = (struct send_message *)(pkt_buf);
-	memcpy(resp, pkt_buf, 50);
+	struct send_message *send = (struct send_message *)(pkt_buf);
+	//memcpy(resp, pkt_buf, 50);
 	//printf("OPCODE: %d\n", send->operation);
- 	switch(resp->status_code)
+ 	switch(send->operation)
 	{
 		case GET:
-			result = (bool) ptr_KVStore->find(KEY_CAST(resp->key),&VALUE_CAST(resp->value)); 			
+			result = (bool) ptr_KVStore->find(KEY_CAST(send->key),&VALUE_CAST(send->value)); 			
 			break;
 		case PUT:
-			result = (bool) ptr_KVStore->insert(KEY_CAST(resp->key), VALUE_CAST(resp->value));
+			result = (bool) ptr_KVStore->insert(KEY_CAST(send->key), VALUE_CAST(send->value));
 			break;
 		case DELETE:
-			result = (bool) ptr_KVStore->erase(KEY_CAST(resp->key));
+			result = (bool) ptr_KVStore->erase(KEY_CAST(send->key));
 			break;
 		case UPDATE:
-			result = (bool) ptr_KVStore->update(KEY_CAST(resp->key), VALUE_CAST(resp->value));
+			result = (bool) ptr_KVStore->update(KEY_CAST(send->key), VALUE_CAST(send->value));
 			break;
 		default:
 			//for (int i = 0; i < 50; i++) {
 			//	printf("%02x", pkt_buf[i]);
 			//}
 			//printf("\n");
-			printf("Received a bad KVSTORE request opcode %d\n", resp->status_code);
+			printf("Received a bad KVSTORE request opcode %d\n", send->operation);
 			exit(1);
 	}
 	if (result) { 
-		resp->status_code = OK;
+		send->operation = OK;
 	}
 	else {
-		resp->status_code = ERROR;
+		send->operation = ERROR;
 	}
 	//printf("kvstore_process_packet returns %i\n",result);
 	return result;

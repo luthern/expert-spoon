@@ -1,5 +1,6 @@
 TARGETS = kvstore
-CC=gcc -g -O3 -Wall -fgnu89-inline
+CC=gcc -O2 -Wall -fgnu89-inline
+#CC=gcc -ggdb -Wall -fgnu89-inline
 DPDK=1
 
 # DPDK LIBRARY and HEADER
@@ -23,8 +24,9 @@ INC += ${MTCP_INC}
 DPDK_MACHINE_FLAGS = $(shell cat /home/cs5204dpdk/mtcp/dpdk/include/cflags.txt)
 INC += ${DPDK_MACHINE_FLAGS} -I${DPDK_INC} -include $(DPDK_INC)/rte_config.h
 DPDK_LIB_FLAGS = $(shell cat /home/cs5204dpdk/mtcp/dpdk/lib/ldflags.txt)
-LIBS += -m64 -g -O3 -pthread -lrt -march=native -export-dynamic ${MTCP_FLD}/lib/libmtcp.a -L/home/cs5204dpdk/mtcp/dpdk/lib -lnuma -lmtcp -lpthread -lrt -ldl ${DPDK_LIB_FLAGS}
+#LIBS += -m64 -g -O3 -pthread -lrt -march=native -export-dynamic ${MTCP_FLD}/lib/libmtcp.a -L/home/cs5204dpdk/mtcp/dpdk/lib -lnuma -lmtcp -lpthread -lrt -ldl ${DPDK_LIB_FLAGS}
 
+LIBS += -m64 -O2 -pthread -lrt -march=native -export-dynamic ${MTCP_FLD}/lib/libmtcp.a -L/home/cs5204dpdk/mtcp/dpdk/lib -lnuma -lmtcp -lpthread -lrt -ldl ${DPDK_LIB_FLAGS}
 all: kvstore
 
 kvstore.o: kvstore.c
