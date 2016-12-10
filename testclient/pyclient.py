@@ -65,7 +65,8 @@ file_pointer.close()
 clients = []
 
 for c in range(0, 1000):
-    clients.append(KVClient('192.168.0.151', packet_buffer,
+    clients.append(KVClient('192.168.0.151', packet_buffer[:
+                                                           number_of_messages],
                             number_of_messages))
 
 start = time.time()
