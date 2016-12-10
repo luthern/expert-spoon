@@ -71,8 +71,12 @@ for c in range(0, 1000):
 
 start = time.time()
 asyncore.loop()
-end = clients[0].get_end_time()
+last_end = 0
+
+for c in clients:
+    if c.get_end_time() > last_end:
+        last_end = c.get_end_time()
 
 print("total_writes ", clients[100].total_writes)
-print("total seconds ", end - start)
-print("requests/second ", number_of_messages / (end - start))
+print("total seconds ", last_end - start)
+print("requests/second ", number_of_messages / (last_end - start))
